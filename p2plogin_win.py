@@ -49,9 +49,8 @@ try:
 
 
 except:
-#except NoSuchElementException as err_exec:
-        print('link is not exist!!')
-       #print('link is not exist!!',err_exec) 
+       print('link is not exist!!')
+    
 
 
 web.quit()
