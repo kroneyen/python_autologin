@@ -22,8 +22,8 @@ logging.basicConfig(level=logging.INFO,
 
 logging.info(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
 
-myusername ="username" 
-mypassword ="password"
+myusername ="fat1209" 
+mypassword ="05161209"
 
 url="http://www.p2p101.com/"
 url2="http://www.p2p101.com/home.php?mod=task&amp;do=apply&amp;id=3" ##user_task_page
