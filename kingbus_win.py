@@ -10,8 +10,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 
 
-myusername ="Q122529928" 
-myphone ="0986356308"
+myusername ="XXXXXX" 
+myphone ="XXXXXXX"
 
 #url="http://www.p2p101.com/"
 #url_2="http://www.p2p101.com/home.php?mod=task&amp;do=apply&amp;id=3" ##user_task_page
