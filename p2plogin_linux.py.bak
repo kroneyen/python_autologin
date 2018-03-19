@@ -22,8 +22,8 @@ logging.basicConfig(level=logging.INFO,
 
 logging.info(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
 
-myusername_list =["XXXXXX","XXXX"] 
-mypassword_list =["XXXXXX","XXXXXX"]
+myusername_list =["fat1209","k20180317"] 
+mypassword_list =["05161209","20180317k"]
 
 
 url="http://www.p2p101.com/"
