@@ -70,20 +70,38 @@ payload = {
 ## loging ptoken
 trlist=[]
 tdlist=[]
+head_top=[]
+
 req_ptoken=s.post(ptoken_url,data = payload,headers = headers,timeout =3)
 soup_ptoken = BeautifulSoup(req_ptoken.text, "html.parser")
 #print(soup_ptoken)
+
+
+### get table_head_top
+table_head_top = soup_ptoken.find('table',class_='table_head_top')
+for thead in table_head_top.find_all('thead'):
+ for td in thead.find_all('td'):
+  if td.text != '\u3000\u3000\u3000\u3000\u3000':
+   head_top.append(td.text)
+#print(head_top)
+
 
 for tbody  in soup_ptoken.find_all('tbody'):
   for tr in tbody.find_all('tr'):
     trlist.append(tr.text)
     for td in tr.find_all('td'):
-      tdlist.append(td.text)
+      if td.text != '\u3000':	
+       tdlist.append(td.text)
+## get top data
+for i in range(0,6,2):
+ print (tdlist[i],tdlist[i+1])
 
-#print(len(trlist),len(tdlist))
-
-for i in range(len(trlist)):
- print(trlist[i])
+## get data
+for i in range(6,len(tdlist)):
+ j = i % len(head_top) -1
+ if j == 0 :
+  print("")
+ print (head_top[j],tdlist[i])
 
 s.close()
 s.cookies.clear()
