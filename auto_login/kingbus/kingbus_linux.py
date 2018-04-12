@@ -32,14 +32,12 @@ myusername_list =["XXXXXXXXX"]
 mypassword_list =["XXXXXXXXX"]
 s_start_id ='A03' ##<option value="A03">台北轉運</option>
 s_end_id ='H26' ##<option value="H26">朝　　馬　</option>
-day_from = datetime.datetime.strftime(datetime.date.today() + datetime.timedelta(days = 4),'%Y/%m/%d')
-day_return = datetime.datetime.strftime(datetime.date.today() + datetime.timedelta(days = 7),'%Y/%m/%d')
+day_from = datetime.datetime.strftime(datetime.date.today() + datetime.timedelta(days = 4),'%Y/%m/%d')  ## booking friday
+day_return = datetime.datetime.strftime(datetime.date.today() + datetime.timedelta(days = 7),'%Y/%m/%d') ## booking monday
 time_from_h ='18'
 time_from_m ='50'
 time_return_h ='06'
 time_return_m ='00'
-#seat_from='ctl00_ContentPlaceHolder1_ckb1A08'  ## from seat 08
-#seat_return='ctl00_ContentPlaceHolder1_ckb1B08' ## return seat 08
 
 ticket_num = ['XXXXXXXXX','XXXXXXXXX','XXXXXXXXX',
               'XXXXXXXXX','XXXXXXXXX','XXXXXXXXX',
