@@ -246,8 +246,8 @@ except:
 
 
 
-print(day_from, "booking is success")
-print(day_return, "booking is success")
+print(day_from "booking is success")
+print(day_return "booking is success")
 
 
 web.quit()
