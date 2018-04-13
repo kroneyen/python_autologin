@@ -130,7 +130,6 @@ print('step3_next_click is success')
 
 ### step 4
 
-### step 4
 
 ###choice  seat
 

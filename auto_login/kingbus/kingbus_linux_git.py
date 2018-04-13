@@ -16,7 +16,7 @@ from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
 import random
 from selenium.webdriver.support.ui import Select
-
+import send_mail
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
@@ -32,16 +32,19 @@ myusername_list =["XXXXXXXXX"]
 mypassword_list =["XXXXXXXXX"]
 s_start_id ='A03' ##<option value="A03">台北轉運</option>
 s_end_id ='H26' ##<option value="H26">朝　　馬　</option>
+##crontab for monday 
 day_from = datetime.datetime.strftime(datetime.date.today() + datetime.timedelta(days = 4),'%Y/%m/%d')  ## booking friday
-day_return = datetime.datetime.strftime(datetime.date.today() + datetime.timedelta(days = 7),'%Y/%m/%d') ## booking monday
+day_return = datetime.datetime.strftime(datetime.date.today() + datetime.timedelta(days = 7),'%Y/%m/%d') ## booking next monday
 time_from_h ='18'
 time_from_m ='50'
 time_return_h ='06'
 time_return_m ='00'
+#seat_from='ctl00_ContentPlaceHolder1_ckb1A08'  ## from seat 08
+#seat_return='ctl00_ContentPlaceHolder1_ckb1B08' ## return seat 08
 
-ticket_num = ['XXXXXXXXX','XXXXXXXXX','XXXXXXXXX',
-              'XXXXXXXXX','XXXXXXXXX','XXXXXXXXX',
-              'XXXXXXXXX','XXXXXXXXX']
+ticket_num = ['XXXXXXXXX12','XXXXXXXXX23','XXXXXXXXX34',
+              'XXXXXXXXX45','XXXXXXXXX56','XXXXXXXXX67',
+              'XXXXXXXXX78','XXXXXXXXX89']
 
 def random_ticket():
   i = random.randrange(0,len(ticket_num),1)
@@ -291,3 +294,16 @@ logger4.info("day_return booking is success")
 
 web.quit()
 display.stop()
+
+
+body = ''
+try:
+    with open('kingbus.log') as fp:
+      data = fp.readlines()
+      for i in data[-14:]:
+          body  = body + i
+
+finally:
+    fp.close()
+
+send_mail.send_email('kingbus auto booking ',body)

@@ -13,6 +13,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 import random
+import send_mail
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
@@ -23,8 +24,8 @@ logging.basicConfig(level=logging.INFO,
 
 logging.info(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
 
-myusername_list =["XXXXXX","XXXXXX"] 
-mypassword_list =["XXXXXX","XXXXXX"]
+myusername_list =["XXXXXXXX","XXXXXXXX"] 
+mypassword_list =["XXXXXXXX","XXXXXXXX"]
 
 
 url="http://www.p2p101.com/"
@@ -37,7 +38,7 @@ display.start()
 #web = webdriver.Chrome('/usr/local/bin/chromedriver') ## for cron path
 
 ## login user page
-
+logg_list = []
 
 for i in range(len(myusername_list)):
 	myusername=myusername_list[i] 
@@ -65,15 +66,13 @@ for i in range(len(myusername_list)):
 	    link.click()
 	    logger = logging.getLogger(myusername)		
 	    logger.info("get redpackage is successed!!")
-
 	except:
             logger = logging.getLogger(myusername)
             logger.info("link is not exist!!")
-	
 	## close web 	
 	time.sleep(random.randrange(1, 10, 1))
 	web.quit()
-
+        
 	## waiting next trun user
 	if i < (len(myusername_list)-1):	
 	   logging.info("waiting for next  user!!")
@@ -84,3 +83,19 @@ for i in range(len(myusername_list)):
 
 logging.info("user all done!!")
 display.stop()
+
+
+### read for log last 4 line of mail body
+body = ''
+try:
+        with open('logging.log') as fp:
+         data = fp.readlines()
+         for i in data[-4:]:
+          body  = body + i
+
+finally:
+    fp.close()
+
+
+send_mail.send_email('p2plogin auto loging',body)
+
