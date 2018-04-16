@@ -33,8 +33,8 @@ mypassword_list =["XXXXXXXXX"]
 s_start_id ='A03' ##<option value="A03">台北轉運</option>
 s_end_id ='H26' ##<option value="H26">朝　　馬　</option>
 ##crontab for monday 
-day_from = datetime.datetime.strftime(datetime.date.today() + datetime.timedelta(days = 4),'%Y/%m/%d')  ## booking friday
-day_return = datetime.datetime.strftime(datetime.date.today() + datetime.timedelta(days = 7),'%Y/%m/%d') ## booking next monday
+day_from = datetime.datetime.strftime(datetime.date.today() + datetime.timedelta(days = 11),'%Y/%m/%d')  ## booking friday
+day_return = datetime.datetime.strftime(datetime.date.today() + datetime.timedelta(days = 14),'%Y/%m/%d') ## booking next monday
 time_from_h ='18'
 time_from_m ='50'
 time_return_h ='06'
@@ -186,111 +186,157 @@ j=1
 k=1
 
 for num in range(8,5,-1):  ##seat num from 8,7,6
- order_seat_from,order_seat_return = change_seat(num)
+  order_seat_from,order_seat_return = change_seat(num)
+  if j < 4 : 
+	   try:
+	      from_seat = WebDriverWait(web, 3).until(EC.element_to_be_clickable((By.ID, order_seat_from)))
+	      from_seat.click()
+	      j = 99  ## got seat 
+	      logger_num1 = logging.getLogger(str(num))
+	      logger_num1.info("choice seat_from num is sucesses")
+	      time.sleep(random.randrange(1, 5, 1))
+	   except:
+	      if j <99 :
+	         j=j+1
+	
+  #print('num_j:',j)
+  ## seat is full
+  elif j == 4 : 
+     break
+ 
+  if k < 4 :
+	   try:
+	      return_seat = WebDriverWait(web, 3).until(EC.element_to_be_clickable((By.ID, order_seat_return)))
+	      return_seat.click()
+	      k = 99
+	      logger_num2 = logging.getLogger(str(num))	
+	      logger_num2.info("choice return_seat num is sucesses")
+	      time.sleep(random.randrange(1, 5, 1))
+	   except:
+	      if k < 99 :
+	         k=k+1
+	
+  elif k == 4 :
+       break
+  ##  choice seat is all done
+  if j == 99 and k == 99:
+    break
 
- if j < 4 : 
-   try:
-       from_seat = WebDriverWait(web, 3).until(EC.element_to_be_clickable((By.ID, order_seat_from)))
-       from_seat.click()
-       j = 99  ## got seat 
-       logging.info("seat_from is sucesses")
-       time.sleep(random.randrange(1, 2, 1))
-   except:
-       j=j+1
+## logging seat failed 
+if j == 4 and k == 99 :
+    logging.info("choice seat_from is failed")
 
-   #print('num_j:',j)
-       
- elif j == 4 :  ## full seat
-      web.quit()
-      display.stop()
-      logging.info("seat_from is failed")
-      
- elif k < 4 :
-   try:
-       return_seat = WebDriverWait(web, 3).until(EC.element_to_be_clickable((By.ID, order_seat_return)))
-       return_seat.click()
-       k = 99
-       logging.info("return_seat is sucesses")
-       time.sleep(random.randrange(1, 2, 1))
-   except:
-       k=k+1
-       
-   #print('num_k:',k)
+elif j == 99 and k == 4:
+    logging.info("choice return_seat from is failed")
 
- elif k == 4 :
-      web.quit()
-      display.stop()
-      logging.info("return_seat is failed")
+	
+if j == 99 and k == 99: # choice sucesses 
+        ##radio
+        ###choice ticket amount:1
+        try:	
+        	web.find_element_by_id('ctl00_ContentPlaceHolder1_rdoATot_Count_0').click()
+        	time.sleep(random.randrange(1, 5, 1))
+        	logging.info("setting ticket_1 amount is sucesses")
+        	## choice return ticket  count
+        except :
+        	logging.info("setting ticket_1 amount is failed")
+        	#web.quit()
+        	#display.stop()
+        	
+        
+        try:
+        	web.find_element_by_id('ctl00_ContentPlaceHolder1_rdoBTot_Count_0').click()
+        	time.sleep(random.randrange(1, 5, 1))
+        	logging.info("setting ticket_2 amount is sucesses")
+        except :
+        	logging.info("setting ticket_2 amount is failed")
+        	#web.quit()
+        	#display.stop()
+        
+         
+        ### finshed book bus ticket
+        try :
+        	step4_click = web.find_element_by_id("ctl00_ContentPlaceHolder1_btnStep4_OK")
+        	step4_click.click()
+        	time.sleep(random.randrange(1, 10, 1))
+        	#print('step4_click book ticket is success')
+        	logging.info("step4_click book  ticket  is success")
+        except :
+        	logging.info("step4_click book  ticket is failed")
+        	#web.quit()
+        	#display.stop()
+        
+        
+        ### step 5 payment keyin ticket num
+        
+        j = 0
+        k = 0
+        
+        for num in range(len(ticket_num)): 
+        
+        	from_ticket ,return_ticket = random_ticket()
+        
+        	time.sleep(random.randrange(1, 5, 1))
+        
+        	## payment key ticket no1 
+        	if j < len(ticket_num) :
+        	   try:
+        	       web.find_element_by_id("ctl00_ContentPlaceHolder1_txtCoupon_TicketNo1").send_keys(from_ticket)
+        	       logger1 = logging.getLogger(from_ticket)	       
+        	       logger1.info("step5_1 TicketNo1 keys in is sucesses")
+        	       time.sleep(random.randrange(1, 10, 1))
+        	       j = 99
+        
+        	   except:
+                       if j < 99 :
+                        j = j+1
+        	   #print('from_ticket:',from_ticket)	
+        	   #print('payment_j:',j)
+        	elif j == len(ticket_num) :
+        	       #web.quit()
+        	       #display.stop()
+        	       logging.info("step5_1 TicketNo1 from_ticket is faild")
+        
+        	## payment key ticket no5 
+        	
+        	if k < len(ticket_num) :
+        	   try:
+        	       web.find_element_by_id("ctl00_ContentPlaceHolder1_txtCoupon_TicketNo5").send_keys(return_ticket)
+        	       logger2 = logging.getLogger(return_ticket)
+        	       logger2.info("step5_2 TicketNo5 keys in is sucesses")
+        	       time.sleep(random.randrange(1, 10, 1))
+        	       k = 99
+        	   except:
+                       if k < 99 :
+                        k = k +1
+        
+        	   #print('return_ticket:',return_ticket)
+        	   #print('payment_k:',k)
+        	elif k == len(ticket_num) :
+        	       #web.quit()
+        	       #display.stop()
+        	       logging.info("step5_2 TicketNo5 return_ticket is faild")
+        	
+        	if j == 99 and k == 99 :
+        	   break
+        
+         
+        ## payment button 
+        try :
+             pay_click = WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.ID, "ctl00_ContentPlaceHolder1_btnPayByPrepaidTickets")))
+             pay_click.click() 
+             logging.info("step5_click payment is success")
+             logger3 = logging.getLogger(day_from)
+             logger4 = logging.getLogger(day_return)
+             logger3.info("day_from booking is success")
+             logger4.info("day_return booking is success")
+            	
+        except:
+               #web.quit()
+               #display.stop()
+               logging.info("step5_click payment is faild")
 
-##radio
-###choice ticket amount:1
 
-web.find_element_by_id('ctl00_ContentPlaceHolder1_rdoATot_Count_0').click()
-time.sleep(random.randrange(1, 5, 1))
-## choice return ticket  count
-web.find_element_by_id('ctl00_ContentPlaceHolder1_rdoBTot_Count_0').click()
-time.sleep(random.randrange(1, 5, 1))
-
-### finshed book bus ticket
-step4_click = web.find_element_by_id("ctl00_ContentPlaceHolder1_btnStep4_OK")
-step4_click.click()
-
-time.sleep(random.randrange(1, 10, 1))
-#print('step4_click is success')
-logging.info("step4_click  is success")
-
-
-### step 5 payment keyin ticket num
-
-from_ticket ,return_ticket = random_ticket()
-
-logger1 = logging.getLogger(from_ticket)
-logger2 = logging.getLogger(return_ticket)
-logger3 = logging.getLogger(day_from)
-logger4 = logging.getLogger(day_return)
-
-time.sleep(random.randrange(1, 10, 1))
-
-## payment key ticket no1 
-try:
-    web.find_element_by_id("ctl00_ContentPlaceHolder1_txtCoupon_TicketNo1").send_keys(from_ticket)
-    logger1.info("TicketNo1 keys in is sucesses")
-    time.sleep(random.randrange(1, 10, 1))
-
-except:
-      web.quit()
-      display.stop()
-      logging.info("from_ticket is faild")
-
-
-## payment key ticket no5 
-try:
-    web.find_element_by_id("ctl00_ContentPlaceHolder1_txtCoupon_TicketNo5").send_keys(return_ticket)
-    logger2.info("TicketNo5 keys in is sucesses")
-    time.sleep(random.randrange(1, 10, 1))
-
-except:
-      web.quit()
-      display.stop()
-      logging.info("return_ticket is faild")
-
-
-
-## payment button 
-try :
-     pay_click = WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.ID, "ctl00_ContentPlaceHolder1_btnPayByPrepaidTickets")))
-     pay_click.click() 
-     logging.info("step5_click  is success")
-
-except:
-       web.quit()
-       display.stop()
-       logging.info("step5_click  is faild")
-
-
-
-logger3.info("day_from booking is success")
-logger4.info("day_return booking is success")
 
 web.quit()
 display.stop()
