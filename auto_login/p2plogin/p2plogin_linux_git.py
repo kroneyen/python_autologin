@@ -6,6 +6,7 @@
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 import time
+import datetime
 from pyvirtualdisplay import Display #nodisplay on chrome
 from selenium.common.exceptions import NoSuchElementException ## show error msg
 import logging
@@ -85,17 +86,22 @@ logging.info("user all done!!")
 display.stop()
 
 
-### read for log last 4 line of mail body
-body = ''
-try:
-        with open('logging.log') as fp:
-         data = fp.readlines()
-         for i in data[-4:]:
-          body  = body + i
+## email on monday 
 
-finally:
-    fp.close()
+today_week = datetime.date.today().strftime("%w")
 
-
-send_mail.send_email('p2plogin auto loging',body)
+if today_week == 1 :
+     ### read for log last 4 line of mail body
+     body = ''
+     try:
+             with open('logging.log') as fp:
+              data = fp.readlines()
+              for i in data[-4:]:
+               body  = body + i
+     
+     finally:
+         fp.close()
+     
+     
+     send_mail.send_email('p2plogin auto loging',body)
 

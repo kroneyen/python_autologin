@@ -18,7 +18,7 @@ def send_email(subject, body):
         server = smtplib.SMTP("smtp.gmail.com", 587)
         server.ehlo()
         server.starttls()
-        server.login(from_user_maiil,pwd)
+        server.login(from_user_mail,pwd)
         server.sendmail(FROM, TO, message)
         server.quit()
         if __name__ == '__main__':
