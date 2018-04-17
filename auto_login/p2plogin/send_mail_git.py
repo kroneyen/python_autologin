@@ -7,7 +7,7 @@ def send_email(subject, body):
     import smtplib
 
     FROM = 'from_user_maiil'
-    TO = 'to_user_mail'
+    TO = ['to_user_mail']
     SUBJECT = subject
     TEXT = body
 
@@ -26,4 +26,4 @@ def send_email(subject, body):
     except:
         if __name__ == '__main__':
          print ('failed to send mail')
-	
+

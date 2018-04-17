@@ -7,7 +7,7 @@ def send_email(subject, body):
     import smtplib
 
     FROM = 'from_user_maiil'
-    TO = 'to_user_mail'
+    TO = ['to_user_mail']
     SUBJECT = subject
     TEXT = body
 
@@ -18,7 +18,7 @@ def send_email(subject, body):
         server = smtplib.SMTP("smtp.gmail.com", 587)
         server.ehlo()
         server.starttls()
-        server.login(from_user_maiil,pwd)
+        server.login(from_user_mail,pwd)
         server.sendmail(FROM, TO, message)
         server.quit()
         if __name__ == '__main__':
@@ -26,4 +26,4 @@ def send_email(subject, body):
     except:
         if __name__ == '__main__':
          print ('failed to send mail')
-	
+
