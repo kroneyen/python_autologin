@@ -172,6 +172,8 @@ def change_seat(num):
   seat_from='ctl00_ContentPlaceHolder1_ckb1A'  ## from_seat 
   seat_return='ctl00_ContentPlaceHolder1_ckb1B' ## return_seat 
 
+  num = int(num)  ## str trnas to int   
+
   if num <= 10 :
    order_seat_from = seat_from+'0'+ str(num)
    order_seat_return = seat_return +'0' + str(num)
@@ -184,15 +186,17 @@ def change_seat(num):
 ### for loop choice seat
 j=1
 k=1
+seat_list = ['8','6','7','11','9','10','14','12','13']
 
-for num in range(8,5,-1):  ##seat num from 8,7,6
-  order_seat_from,order_seat_return = change_seat(num)
-  if j < 4 : 
+#for num in range(8,5,-1):  ##seat num from 8,7,6
+for num in range(len(seat_list)):  ##seat num from seat_list 
+  order_seat_from,order_seat_return = change_seat(seat_list[num])
+  if j < len(seat_list) : 
 	   try:
 	      from_seat = WebDriverWait(web, 3).until(EC.element_to_be_clickable((By.ID, order_seat_from)))
 	      from_seat.click()
 	      j = 99  ## got seat 
-	      logger_num1 = logging.getLogger(str(num))
+	      logger_num1 = logging.getLogger(seat_list[num])
 	      logger_num1.info("choice seat_from num is sucesses")
 	      time.sleep(random.randrange(1, 5, 1))
 	   except:
@@ -201,32 +205,32 @@ for num in range(8,5,-1):  ##seat num from 8,7,6
 	
   #print('num_j:',j)
   ## seat is full
-  elif j == 4 : 
+  elif j == len(seat_list) : 
      break
  
-  if k < 4 :
+  if k < len(seat_list) :
 	   try:
 	      return_seat = WebDriverWait(web, 3).until(EC.element_to_be_clickable((By.ID, order_seat_return)))
 	      return_seat.click()
 	      k = 99
-	      logger_num2 = logging.getLogger(str(num))	
+	      logger_num2 = logging.getLogger(seat_list[num])	
 	      logger_num2.info("choice return_seat num is sucesses")
 	      time.sleep(random.randrange(1, 5, 1))
 	   except:
 	      if k < 99 :
 	         k=k+1
 	
-  elif k == 4 :
+  elif k == len(seat_list) :
        break
   ##  choice seat is all done
   if j == 99 and k == 99:
     break
 
 ## logging seat failed 
-if j == 4 and k == 99 :
+if j == len(seat_list) and k == 99 :
     logging.info("choice seat_from is failed")
 
-elif j == 99 and k == 4:
+elif j == 99 and k == len(seat_list):
     logging.info("choice return_seat from is failed")
 
 	
