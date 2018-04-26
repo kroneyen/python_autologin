@@ -172,7 +172,7 @@ def change_seat(num):
   seat_from='ctl00_ContentPlaceHolder1_ckb1A'  ## from_seat 
   seat_return='ctl00_ContentPlaceHolder1_ckb1B' ## return_seat 
 
-  num = int(num)  ## str trans to int   
+  num = int(num)  ## str trnas to int   
 
   if num <= 10 :
    order_seat_from = seat_from+'0'+ str(num)
