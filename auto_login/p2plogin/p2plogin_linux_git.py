@@ -19,7 +19,7 @@ import send_mail
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
-                    filename='logging.log',
+                    filename='p2p_login.log',
 		    filemode='a')
 
 
@@ -45,6 +45,7 @@ for i in range(len(myusername_list)):
 	myusername=myusername_list[i] 
 	mypassword =mypassword_list[i]
 	
+	#web = webdriver.Chrome() ## for cron path	
 	web = webdriver.Chrome('/usr/local/bin/chromedriver') ## for cron path	
 	web.get(url)
 	time.sleep(1)
@@ -90,11 +91,11 @@ display.stop()
 
 today_week = datetime.date.today().strftime("%w")
 
-if today_week == 1 :
+if today_week == '1' :
      ### read for log last 4 line of mail body
      body = ''
      try:
-             with open('logging.log') as fp:
+             with open('p2p_login.log') as fp:
               data = fp.readlines()
               for i in data[-4:]:
                body  = body + i
