@@ -44,7 +44,7 @@ time_return_m ='00'
 
 ticket_num = ['XXXXXXXXX12','XXXXXXXXX23','XXXXXXXXX34',
               'XXXXXXXXX45','XXXXXXXXX56','XXXXXXXXX67',
-              'XXXXXXXXX78','XXXXXXXXX89']
+              ]
 
 def random_ticket():
   i = random.randrange(0,len(ticket_num),1)
@@ -128,12 +128,12 @@ try:
     from_botton = WebDriverWait(web, 15).until(EC.element_to_be_clickable((By.XPATH, "//*[@id='ctl00_ContentPlaceHolder1_grdAList']/tbody/tr[3]/td[2]/input")))
     from_botton.click() 
     time.sleep(random.randrange(1, 5, 1))
-    logging.info("step3_click_1  is success")
+    logging.info("step3_click_1 from schdule  is success")
 
 except:
       web.quit()
       display.stop()
-      logging.info("step3_click_1  is faild")
+      logging.info("step3_click_1 from schdule is faild")
 
 ## choice return schdule
 
@@ -141,25 +141,25 @@ try:
     return_botton = WebDriverWait(web, 15).until(EC.element_to_be_clickable((By.XPATH, "//*[@id='ctl00_ContentPlaceHolder1_grdBList']/tbody/tr[3]/td[2]/input")))
     return_botton.click() 
     time.sleep(random.randrange(1, 3, 1))
-    logging.info("step3_click_2  is success")
+    logging.info("step3_click_2 return schdule is success")
 
 
 except:
       web.quit()
       display.stop() 
-      logging.info("step3_click_2  is faild")
+      logging.info("step3_click_2  return schdule is faild")
 
 
 try:
     step3_click = WebDriverWait(web, 15).until(EC.element_to_be_clickable((By.ID, "ctl00_ContentPlaceHolder1_btnStep3_OK")))
     step3_click.click()
     time.sleep(random.randrange(1, 3, 1))	
-    logging.info("step3_next  is success")
+    logging.info("step3_next schdule  is success")
 
 except:
       web.quit()
       display.stop()
-      logging.info("step3_next  is faild")
+      logging.info("step3_next schdule  is faild")
 
    
 #time.sleep(random.randrange(1, 3, 1))
@@ -174,7 +174,7 @@ def change_seat(num):
 
   num = int(num)  ## str trans to int   
 
-  if num <= 10 :
+  if num < 10 :
    order_seat_from = seat_from+'0'+ str(num)
    order_seat_return = seat_return +'0' + str(num)
   else :
@@ -184,19 +184,19 @@ def change_seat(num):
   return order_seat_from,order_seat_return
 
 ### for loop choice seat
-j=1
-k=1
+j=0
+k=0
 seat_list = ['8','6','7','11','9','10','14','12','13']
 
-#for num in range(8,5,-1):  ##seat num from 8,7,6
-for num in range(len(seat_list)):  ##seat num from seat_list 
-  order_seat_from,order_seat_return = change_seat(seat_list[num])
+#for num in range(len(seat_list)):  ##seat num from seat_list 
+for num in seat_list:  ##seat num from seat_list 
+  order_seat_from,order_seat_return = change_seat(num)
   if j < len(seat_list) : 
 	   try:
 	      from_seat = WebDriverWait(web, 3).until(EC.element_to_be_clickable((By.ID, order_seat_from)))
 	      from_seat.click()
 	      j = 99  ## got seat 
-	      logger_num1 = logging.getLogger(seat_list[num])
+	      logger_num1 = logging.getLogger(num)
 	      logger_num1.info("choice seat_from num is sucesses")
 	      time.sleep(random.randrange(1, 5, 1))
 	   except:
@@ -213,7 +213,7 @@ for num in range(len(seat_list)):  ##seat num from seat_list
 	      return_seat = WebDriverWait(web, 3).until(EC.element_to_be_clickable((By.ID, order_seat_return)))
 	      return_seat.click()
 	      k = 99
-	      logger_num2 = logging.getLogger(seat_list[num])	
+	      logger_num2 = logging.getLogger(num)	
 	      logger_num2.info("choice return_seat num is sucesses")
 	      time.sleep(random.randrange(1, 5, 1))
 	   except:
@@ -350,7 +350,7 @@ body = ''
 try:
     with open('kingbus.log') as fp:
       data = fp.readlines()
-      for i in data[-14:]:
+      for i in data[-16:]:
           body  = body + i
 
 finally:
