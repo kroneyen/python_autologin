@@ -87,12 +87,8 @@ def reply_format():
          reply = reply_format[i]
          reply_str = reply
          reply_str_all.append(reply_str)
-    ## lists modle change to string line modle & return  
-    format_str =''
-    for sstr in reply_str_all:  
-        format_str = format_str + sstr + '\n'        
-
-    return  format_str  ##return reply format 
+    
+    return  reply_str_all  ##return reply format 
 
 ##  Get BT HD page   
 def get_link(bt_hd_url): 
@@ -104,14 +100,14 @@ def get_link(bt_hd_url):
     threadlist = soup.find(id='threadlisttableid')  ## get forum threadlist ID
     for normalthread_list  in threadlist.find_all('tbody',{'id':re.compile('^normalthread_')}):  ## match rows
         for td_list in normalthread_list.find_all('td',{'class':re.compile('icn')}):
-            for link  in td_list.find_all('a'):  ##get link 
+            for link  in normalthread_list.find_all('a',limit =1):  ##get link 
                 get_link_list.append(link.get('href'))
-            
+
     ### random get_link_list rows & thread_num                
     for rows in range(random.randrange(1,6,1)): ## get 1~5 rows
       #link_str.append(url+get_link_list[rows])
        thread_num = random.randrange(0,len(get_link_list),1) ##random thread_num
-       link_str.append(url+get_link_list[thread_num])
+       link_str.append(url+get_link_list[thread_num)
     return link_str
 
 
@@ -131,20 +127,24 @@ for num in range(len(myusername_list)):
     logging.info("login botton is success")
     
     time.sleep(random.randrange(1, 5, 1))
-
     #######  auto_reply
     auto_get_link_list = get_link(bt_hd_url) ## get BT_HD thread link list 
     for auto_link_str in auto_get_link_list :
+        ## list modle change to string line return
+        format_str =''
         auto_reply = reply_format()
+        for sstr in auto_reply:  
+            format_str = format_str + sstr + '\n'     
+        #print(format_str)
         ## threadlist page change
         web.get(auto_link_str)
         time.sleep(random.randrange(2, 5, 1))
         web.find_element_by_id("fastpostmessage").clear()
-        web.find_element_by_id("fastpostmessage").send_keys(auto_reply) ## reply format_str on textarea
-        time.sleep(random.randrange(2, 5, 1))
-	              
+        web.find_element_by_id("fastpostmessage").send_keys(format_str) ## reply format_str on textarea
+        time.sleep(random.randrange(2, 5, 1))        	              
         try :
              WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.ID, "fastpostsubmit"))).submit() ## textarea submit
+             #web.find_element_by_id("fastpostsubmit").submit()  ## textarea submit
              #print(auto_link_str,auto_reply)
              logger = logging.getLogger(auto_link_str)
              logger.info("textarea is successed ,waiting next link !!")
