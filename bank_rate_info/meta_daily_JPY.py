@@ -73,7 +73,7 @@ viewstate = soup.find('input',id='javax.faces.ViewState').get('value')
 ##USD
 payload = {
         'main': 'main',
-        'main:currency': '01',
+        'main:currency': '08',
         'typeGrp': 'DCR',
         'main:startDate': str_today,
         'main:endDate': str_today,
@@ -135,10 +135,9 @@ for i in range(6,len(tdlist),5):
  # print("") 
  #print(head_top[j],tdlist[i])
  if i == 6 :
-   print(head_top[j],'\u3000','\u3000','\u3000',head_top[j+1],'\u3000',head_top[j+2],'\u3000',head_top[j+3],'\u3000',head_top[j+4],'\u3000','中價' )
+   print(head_top[j],'\u3000','\u3000','\u3000',head_top[j+1],'\u3000',head_top[j+2],'\u3000',head_top[j+3],'\u3000',head_top[j+4],'\u3000','ATM中價' )
  #print(tdlist[i],'\u3000',tdlist[i+1],'\u3000','\u3000',tdlist[i+2],'\u3000','\u3000',tdlist[i+3],'\u3000','\u3000',tdlist[i+4],float((int(tdlist[i+3])+int(tdlist[i+4]))/2))
  print(tdlist[i],'\u3000',tdlist[i+1],'\u3000','\u3000',tdlist[i+2],'\u3000','\u3000',tdlist[i+3],'\u3000','\u3000',tdlist[i+4],'\u3000',round((float(tdlist[i+3])+float(tdlist[i+4]))/2,5))
- 
  
 
 s.close()
