@@ -30,9 +30,15 @@ logging.info(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
 myusername_list =["XXXXXXXX","XXXXXXXX"] 
 mypassword_list =["XXXXXXXX","XXXXXXXX"]   
 
-url="http://www.p2p101.com/"
+### check week day 
+today_week = datetime.date.today().strftime("%w")
+
+url="http://www.p2p101.com"
 url2="http://www.p2p101.com/home.php?mod=task&amp;do=apply&amp;id=3" ##user_task_page
-bt_hd_url="http://www.p2p101.com/forum.php?mod=forumdisplay&fid=920" ##BT HD page
+bt_hd_url="http://www.p2p101.com/forum.php?mod=forumdisplay&fid=920&page="+str(today_week) ##BT HD page
+## http://www.p2p101.com/forum.php?mod=forumdisplay&fid=920&page=6
+logger = logging.getLogger(bt_hd_url)
+logger.info("BT HD page !!")
 
 ## Usage Virtual Dispaly
 display = Display(visible=0, size=(800, 600))
@@ -139,23 +145,25 @@ for num in range(len(myusername_list)):
         ## threadlist page change
         web.get(auto_link_str)
         time.sleep(random.randrange(2, 5, 1))
-        web.find_element_by_id("fastpostmessage").clear()
-        web.find_element_by_id("fastpostmessage").send_keys(auto_reply) ## reply format_str on textarea
-        time.sleep(random.randrange(2, 5, 1))
-	              
-        try :
+        
+        try : 
+             web.find_element_by_id("fastpostmessage").clear()
+             web.find_element_by_id("fastpostmessage").send_keys(auto_reply) ## reply format_str on textarea
+             time.sleep(random.randrange(2, 5, 1))
              WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.ID, "fastpostsubmit"))).submit() ## textarea submit
              #print(auto_link_str,auto_reply)
              logger = logging.getLogger(auto_link_str)
              logger.info("textarea is successed ,waiting next link !!")
              time.sleep(random.randrange(10, 30, 1))	                              
+        
         except :
                logger = logging.getLogger(auto_link_str)
                logger.info("textarea is failed!!")            	      	
                break
         
     ### chagne next link             
-    web.quit()	          	          
+    logger = logging.getLogger(myusername)
+    logger.info("reply all done!!") 
     time.sleep(random.randrange(1, 5, 1))      
 	               
     #######  login user task
@@ -189,15 +197,15 @@ display.stop()
 
 ## email on monday 
 
-today_week = datetime.date.today().strftime("%w")
+#today_week = datetime.date.today().strftime("%w")
 
 if today_week == '1' :
-     ### read for log last 10 line of mail body
+     ### read for log last 15 line of mail body
      body = ''
      try:
              with open('p2p_login_with_reply.log') as fp:
               data = fp.readlines()
-              for i in data[-10:]:
+              for i in data[-15:]:
                body  = body + i
      
      finally:
