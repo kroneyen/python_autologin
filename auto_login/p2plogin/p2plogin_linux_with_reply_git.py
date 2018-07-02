@@ -1,4 +1,4 @@
-#! /usr/bin/Genv python3.6
+#! /usr/bin/env python3.6
 # -*- coding: utf-8 -*-
 
 ## chromedrive 2.32
@@ -32,10 +32,11 @@ mypassword_list =["XXXXXXXX","XXXXXXXX"]
 
 ### check week day 
 today_week = datetime.date.today().strftime("%w")
+page_num = 7-int(today_week)+1
 
 url="http://www.p2p101.com"
 url2="http://www.p2p101.com/home.php?mod=task&amp;do=apply&amp;id=3" ##user_task_page
-bt_hd_url="http://www.p2p101.com/forum.php?mod=forumdisplay&fid=920&page="+str(today_week) ##BT HD page
+bt_hd_url="http://www.p2p101.com/forum.php?mod=forumdisplay&fid=920&page="+str(page_num) ##BT HD page
 ## http://www.p2p101.com/forum.php?mod=forumdisplay&fid=920&page=6
 logger = logging.getLogger(bt_hd_url)
 logger.info("BT HD page !!")
@@ -104,22 +105,26 @@ def reply_format():
 def get_link(bt_hd_url): 
     get_link_list= []
     link_str = []
-    ## auto_reply
     web.get(bt_hd_url) ## login BT HD page 
     soup = BeautifulSoup(web.page_source , "html.parser")
     threadlist = soup.find(id='threadlisttableid')  ## get forum threadlist ID
     for normalthread_list  in threadlist.find_all('tbody',{'id':re.compile('^normalthread_')}):  ## match rows
         for td_list in normalthread_list.find_all('td',{'class':re.compile('icn')}):
-            for link  in td_list.find_all('a'):  ##get link 
+            for link  in td_list.find_all('a'):  ##get all link
                 get_link_list.append(link.get('href'))
-            
+    ### non-repetitive link list 
+    non_rep_link_list = random.sample(get_link_list, k=random.randrange(2,6,1)) ## get non-repetitive random 2~5 rows from get_link_list
+    for rows in non_rep_link_list
+        link_str.append(url+rows) ## full link URL
+    return link_str
+    """        
     ### random get_link_list rows & thread_num                
     for rows in range(random.randrange(1,6,1)): ## get 1~5 rows
       #link_str.append(url+get_link_list[rows])
        thread_num = random.randrange(0,len(get_link_list),1) ##random thread_num
        link_str.append(url+get_link_list[thread_num])
     return link_str
-
+    """
 
 ## login user page
 
