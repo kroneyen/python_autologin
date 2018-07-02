@@ -44,6 +44,7 @@ time_return_m ='00'
 
 ticket_num = ['XXXXXXXXX12','XXXXXXXXX23','XXXXXXXXX34',
               'XXXXXXXXX45','XXXXXXXXX56','XXXXXXXXX67',
+              'XXXXXXXXX78','XXXXXXXXX89'
               ]
 
 def random_ticket():
@@ -81,15 +82,17 @@ for i in range(len(myusername_list)):
   web.find_element_by_id("ctl00_ContentPlaceHolder1_btnStep1_OK").click()
   time.sleep(random.randrange(1, 5, 1))
 
-logging.info("step1_next_click  is success")
+logging.info("step1_next_click  login is success")
 
 ### step 2
 ### choice station  from Taipei_bus_center to Chaoma terminal
 Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlStation_ID_From")).select_by_value(s_start_id)
+logging.info("From_location  is success")
 
 time.sleep(random.randrange(1, 5, 1))
 Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlStation_ID_To")).select_by_value(s_end_id)
 
+logging.info("Destination_location  is success")
 time.sleep(random.randrange(1, 5, 1))
 
 ### choice station  from date , rutern date
@@ -100,66 +103,76 @@ time.sleep(random.randrange(1, 5, 1))
 web.find_element_by_id("ctl00_ContentPlaceHolder1_txtBOut_Dt").send_keys(day_return)
 
 time.sleep(random.randrange(1, 5, 1))
+logging.info("Date choose  is success")
 
-
-### check from  time
+### search from time table
 
 Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlAHour")).select_by_value(time_from_h)
 time.sleep(random.randrange(1, 5, 1))
 Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlAMinute")).select_by_value(time_from_m)
 time.sleep(random.randrange(1, 5, 1))
 
+### search return time table
+
 Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlBHour")).select_by_value(time_return_h)
 time.sleep(random.randrange(1, 5, 1))
 Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlBMinute")).select_by_value(time_return_m)
 time.sleep(random.randrange(1, 5, 1))
 
+### search time table button
 
-step2_click = web.find_element_by_id("ctl00_ContentPlaceHolder1_btnStep2_OK")
-step2_click.click()
+try :
+     #step2_click = web.find_element_by_id("ctl00_ContentPlaceHolder1_btnStep2_OK")
+     #step2_click.click()
+     WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.ID, "ctl00_ContentPlaceHolder1_btnStep2_OK"))).click()
+     time.sleep(random.randrange(1, 5, 1))
+     logging.info("step2_next_click search time table   is success")
 
-time.sleep(random.randrange(1, 5, 1))
-logging.info("step2_next_click  is success")
+except : 
+        web.quit()
+        display.stop()
+        logging.info("step2_next_click search time table is failed")
 
 ### step 3
 
-## choice from schdule
+## check from time table
 try:
     from_botton = WebDriverWait(web, 15).until(EC.element_to_be_clickable((By.XPATH, "//*[@id='ctl00_ContentPlaceHolder1_grdAList']/tbody/tr[3]/td[2]/input")))
     from_botton.click() 
     time.sleep(random.randrange(1, 5, 1))
-    logging.info("step3_click_1 from schdule  is success")
+    logging.info("step3_click_1 check from time table  is success")
 
 except:
       web.quit()
       display.stop()
-      logging.info("step3_click_1 from schdule is faild")
+      logging.info("step3_click_1 check from time table is failed")
 
-## choice return schdule
+## check return time table
 
 try:          
     return_botton = WebDriverWait(web, 15).until(EC.element_to_be_clickable((By.XPATH, "//*[@id='ctl00_ContentPlaceHolder1_grdBList']/tbody/tr[3]/td[2]/input")))
     return_botton.click() 
     time.sleep(random.randrange(1, 3, 1))
-    logging.info("step3_click_2 return schdule is success")
+    logging.info("step3_click_2 check return time table is success")
 
 
 except:
       web.quit()
       display.stop() 
-      logging.info("step3_click_2  return schdule is faild")
+      logging.info("step3_click_2 check return time table is failed")
 
 
+### check time table button 
 try:
     step3_click = WebDriverWait(web, 15).until(EC.element_to_be_clickable((By.ID, "ctl00_ContentPlaceHolder1_btnStep3_OK")))
     step3_click.click()
     time.sleep(random.randrange(1, 3, 1))	
-    logging.info("step3_next schdule  is success")
+    logging.info("step3_next check time table button  is success")
 
 except:
       web.quit()
       display.stop()
-      logging.info("step3_next schdule  is faild")
+      logging.info("step3_next check time table button  is failed")
 
    
 #time.sleep(random.randrange(1, 3, 1))
@@ -350,7 +363,7 @@ body = ''
 try:
     with open('kingbus.log') as fp:
       data = fp.readlines()
-      for i in data[-16:]:
+      for i in data[-19:]:
           body  = body + i
 
 finally:
