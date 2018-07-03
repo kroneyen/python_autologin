@@ -32,7 +32,8 @@ mypassword_list =["XXXXXXXX","XXXXXXXX"]
 
 ### check week day 
 today_week = datetime.date.today().strftime("%w")
-page_num = 7-int(today_week)+1
+#page_num = 7-int(today_week)+1
+page_num = random.randrange(1,10,1)
 
 url="http://www.p2p101.com"
 url2="http://www.p2p101.com/home.php?mod=task&amp;do=apply&amp;id=3" ##user_task_page
@@ -117,14 +118,14 @@ def get_link(bt_hd_url):
     for rows in non_rep_link_list
         link_str.append(url+rows) ## full link URL
     return link_str
-    """        
+"""        
     ### random get_link_list rows & thread_num                
     for rows in range(random.randrange(1,6,1)): ## get 1~5 rows
       #link_str.append(url+get_link_list[rows])
        thread_num = random.randrange(0,len(get_link_list),1) ##random thread_num
        link_str.append(url+get_link_list[thread_num])
     return link_str
-    """
+"""
 
 ## login user page
 
