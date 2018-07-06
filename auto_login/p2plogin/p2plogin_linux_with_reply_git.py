@@ -29,16 +29,15 @@ logging.info(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
 
 myusername_list =["XXXXXXXX","XXXXXXXX"] 
 mypassword_list =["XXXXXXXX","XXXXXXXX"]   
-
-### check week day 
-today_week = datetime.date.today().strftime("%w")
-#page_num = 7-int(today_week)+1
+###random page
 page_num = random.randrange(1,10,1)
 
 url="http://www.p2p101.com"
 url2="http://www.p2p101.com/home.php?mod=task&amp;do=apply&amp;id=3" ##user_task_page
 bt_hd_url="http://www.p2p101.com/forum.php?mod=forumdisplay&fid=920&page="+str(page_num) ##BT HD page
 ## http://www.p2p101.com/forum.php?mod=forumdisplay&fid=920&page=6
+url_credit = 'http://www.p2p101.com/home.php?mod=spacecp&ac=credit&showcredit=1'
+
 logger = logging.getLogger(bt_hd_url)
 logger.info("BT HD page !!")
 
@@ -108,6 +107,7 @@ def get_link(bt_hd_url):
     link_str = []
     web.get(bt_hd_url) ## login BT HD page 
     soup = BeautifulSoup(web.page_source , "html.parser")
+    #time.sleep(random.randrange(1, 3, 1))
     threadlist = soup.find(id='threadlisttableid')  ## get forum threadlist ID
     for normalthread_list  in threadlist.find_all('tbody',{'id':re.compile('^normalthread_')}):  ## match rows
         for td_list in normalthread_list.find_all('td',{'class':re.compile('icn')}):
@@ -115,7 +115,7 @@ def get_link(bt_hd_url):
                 get_link_list.append(link.get('href'))
     ### non-repetitive link list 
     non_rep_link_list = random.sample(get_link_list, k=random.randrange(2,6,1)) ## get non-repetitive random 2~5 rows from get_link_list
-    for rows in non_rep_link_list
+    for rows in non_rep_link_list :
         link_str.append(url+rows) ## full link URL
     return link_str
 """        
@@ -126,6 +126,15 @@ def get_link(bt_hd_url):
        link_str.append(url+get_link_list[thread_num])
     return link_str
 """
+### get user credit to log records
+def get_credit(myusername):
+    web.get(url_credit)
+    soup = BeautifulSoup(web.page_source , "html.parser")
+    credit = soup.find('ul',{'class':re.compile('creditl mtm bbda cl')})
+    for li_list  in credit.find_all('li'):
+     logger = logging.getLogger(myusername)
+     logger.info(li_list.text)
+
 
 ## login user page
 
@@ -136,13 +145,13 @@ for num in range(len(myusername_list)):
     #web = webdriver.Chrome() ## for cron path	
     web = webdriver.Chrome('/usr/local/bin/chromedriver') ## for cron path	
     web.get(url)
-    time.sleep(1)
+    time.sleep(random.randrange(2, 5, 1))
     web.find_element_by_id("ls_username").send_keys(myusername)
     web.find_element_by_id("ls_password").send_keys(mypassword)
     web.find_element_by_xpath("//button[contains(@class, 'pn vm')]").submit() ## login
-    logging.info("login botton is success")
-    
-    time.sleep(random.randrange(1, 5, 1))
+    logger = logging.getLogger(myusername)   
+    logger.info("login botton is success")
+    time.sleep(random.randrange(5, 10, 1))
 
     #######  auto_reply
     auto_get_link_list = get_link(bt_hd_url) ## get BT_HD thread link list 
@@ -159,15 +168,15 @@ for num in range(len(myusername_list)):
              WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.ID, "fastpostsubmit"))).submit() ## textarea submit
              #print(auto_link_str,auto_reply)
              logger = logging.getLogger(auto_link_str)
-             logger.info("textarea is successed ,waiting next link !!")
+             logger.info("reply is successed ,waiting next link !!")
              time.sleep(random.randrange(10, 30, 1))	                              
         
         except :
                logger = logging.getLogger(auto_link_str)
-               logger.info("textarea is failed!!")            	      	
+               logger.info("reply is failed!!")            	      	
                break
         
-    ### chagne next link             
+    ### user reply all done 
     logger = logging.getLogger(myusername)
     logger.info("reply all done!!") 
     time.sleep(random.randrange(1, 5, 1))      
@@ -185,7 +194,14 @@ for num in range(len(myusername_list)):
     except:
           logger = logging.getLogger(myusername)
           logger.info("link is not exist!!")
+
     ## close web 	
+    #### get credit 
+    #format_get_credit = get_credit()
+    #for format_text in format_get_credit :
+    #  logger = logging.getLogger(myusername)
+    #  logger.info(format_text)  
+    get_credit(myusername)
     time.sleep(random.randrange(1, 10, 1))
     web.quit()
           
@@ -201,17 +217,17 @@ logging.info("user all done!!")
 display.stop()
 
 
-## email on monday 
+## send email on monday 
 
-#today_week = datetime.date.today().strftime("%w")
+today_week = datetime.date.today().strftime("%w")
 
 if today_week == '1' :
-     ### read for log last 15 line of mail body
-     body = ''
+     ### read for log last 41 line of mail body
+     body = '' 
      try:
              with open('p2p_login_with_reply.log') as fp:
               data = fp.readlines()
-              for i in data[-15:]:
+              for i in data[-41:]:
                body  = body + i
      
      finally:
