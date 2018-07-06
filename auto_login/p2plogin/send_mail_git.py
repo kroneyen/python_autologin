@@ -5,25 +5,28 @@
 
 def send_email(subject, body):
     import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
 
     FROM = 'from_user_maiil'
     TO = ['to_user_mail']
-    SUBJECT = subject
-    TEXT = body
-
     # Prepare actual message
-    message = """From: %s\nTo: %s\nSubject: %s\n\n%s
-    """ % (FROM, ", ".join(TO), SUBJECT, TEXT)
+    msgText = MIMEText(body,'plain','utf-8')
+    msg = MIMEMultipart()
+    msg['Subject'] = subject
+    msg.attach(msgText)
+     
     try:
         server = smtplib.SMTP("smtp.gmail.com", 587)
+        #server.set_debuglevel(1)
         server.ehlo()
         server.starttls()
         server.login(from_user_mail,pwd)
-        server.sendmail(FROM, TO, message)
+        server.sendmail(FROM, TO, msg.as_string())
         server.quit()
         if __name__ == '__main__':
          print ('successfully sent the mail')
     except:
         if __name__ == '__main__':
          print ('failed to send mail')
-
+    
