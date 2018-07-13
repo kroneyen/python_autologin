@@ -11,8 +11,8 @@ def send_email(subject, body):
     FROM = 'from_user_maiil'
     TO = ['to_user_mail']
     # Prepare actual message
-    msgText = MIMEText(body,'plain','utf-8')
-    msg = MIMEMultipart()
+    msgText = MIMEText(body,'plain','utf-8')   ## mail body of chinese , setting harset utf8
+    msg = MIMEMultipart()  ## merge mail  multiple part 
     msg['Subject'] = subject
     msg.attach(msgText)
      
@@ -22,7 +22,7 @@ def send_email(subject, body):
         server.ehlo()
         server.starttls()
         server.login(from_user_mail,pwd)
-        server.sendmail(FROM, TO, msg.as_string())
+        server.sendmail(FROM, TO, msg.as_string())  ## msg transfer  to string
         server.quit()
         if __name__ == '__main__':
          print ('successfully sent the mail')

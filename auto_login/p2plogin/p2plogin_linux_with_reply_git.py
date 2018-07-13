@@ -28,26 +28,23 @@ logging.basicConfig(level=logging.INFO,
 logging.info(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
 
 myusername_list =["XXXXXXXX","XXXXXXXX"] 
-mypassword_list =["XXXXXXXX","XXXXXXXX"]   
-###random page
-page_num = random.randrange(1,10,1)
+mypassword_list =["XXXXXXXX","XXXXXXXX"]
+uid_list = ["XXXXXXXX","XXXXXXXX"]   
 
 url="http://www.p2p101.com"
 url2="http://www.p2p101.com/home.php?mod=task&amp;do=apply&amp;id=3" ##user_task_page
-bt_hd_url="http://www.p2p101.com/forum.php?mod=forumdisplay&fid=920&page="+str(page_num) ##BT HD page
-## http://www.p2p101.com/forum.php?mod=forumdisplay&fid=920&page=6
-url_credit = 'http://www.p2p101.com/home.php?mod=spacecp&ac=credit&showcredit=1'
+bt_hd_url="http://www.p2p101.com/forum.php?mod=forumdisplay&fid=920&page=" ##BT HD page
+url_credit = 'http://www.p2p101.com/home.php?mod=spacecp&ac=credit&showcredit=1'  ## user credit page
+reply_history_p1 ='http://www.p2p101.com/home.php?mod=space&uid='   ## myreply_history_part 1 
+reply_history_p2 ='&do=thread&view=me&type=reply&from=space'        ## myreply_history_part 2
 
-logger = logging.getLogger(bt_hd_url)
-logger.info("BT HD page !!")
-
-## Usage Virtual Dispaly
+### Usage Virtual Dispaly
 display = Display(visible=0, size=(800, 600))
 display.start()
 #web = webdriver.Chrome()
 #web = webdriver.Chrome('/usr/local/bin/chromedriver') ## for cron path
 
-##  reply format 
+###  Reply Format 
 def reply_format(): 
     reply_str_all =[]
     today = time.strftime('%Y/%m/%d' , time.localtime())
@@ -63,7 +60,8 @@ def reply_format():
     '感謝版主分享~下載中',
     '看起來好似不錯感謝大大的分享!',
     '謝謝分享，終於等到好畫值，讚啦',
-    '感恩超級期待這片!收藏了...感謝版主']
+    '感恩超級期待這片!收藏了...感謝版主',
+    '自己下載檔案影片 不小心刪除 , 重新下載一次 , 感謝版主分享']
         
     reply_format = [ 
     '下載日期 : ' ,
@@ -101,32 +99,76 @@ def reply_format():
 
     return  format_str  ##return reply format 
 
-##  Get BT HD page   
-def get_link(bt_hd_url): 
+###  Get BT HD page   
+def get_link(url,bt_hd_url,myreply_history_url):
+    page_num = random.randrange(10,20,1)
+    bt_hd_url=bt_hd_url+str(page_num)
     get_link_list= []
     link_str = []
-    web.get(bt_hd_url) ## login BT HD page 
+    reply_history_list = []
+    ### Login BT HD page 
+    web.get(bt_hd_url) ## login BT HD page
+    logger = logging.getLogger(bt_hd_url)
+    logger.info("BT HD page !!")
     soup = BeautifulSoup(web.page_source , "html.parser")
     #time.sleep(random.randrange(1, 3, 1))
+    ### Get BR HD link
     threadlist = soup.find(id='threadlisttableid')  ## get forum threadlist ID
     for normalthread_list  in threadlist.find_all('tbody',{'id':re.compile('^normalthread_')}):  ## match rows
         for td_list in normalthread_list.find_all('td',{'class':re.compile('icn')}):
             for link  in td_list.find_all('a'):  ##get all link
                 get_link_list.append(link.get('href'))
-    ### non-repetitive link list 
-    non_rep_link_list = random.sample(get_link_list, k=random.randrange(2,6,1)) ## get non-repetitive random 2~5 rows from get_link_list
-    for rows in non_rep_link_list :
-        link_str.append(url+rows) ## full link URL
+    ### check non-repetitive link list
+    non_rep_link_list = random.sample(get_link_list, k=random.randrange(1,3,1)) ## get non-repetitive random 2~5 rows from get_link_list
+    #print(non_rep_link_list)
+    time.sleep(random.randrange(3, 5, 1))
+    
+    ### Login Myreply_history_url
+    web.get(myreply_history_url)    
+    logger = logging.getLogger(myreply_history_url)
+    logger.info("myreply history page !!")
+    soup_2 = BeautifulSoup(web.page_source , "html.parser")
+    ### Get Myreply_history url
+    form_table = soup_2.find(id='delform')
+    for link_2 in  form_table.find_all('a',{'title':re.compile('新窗口打開')}):
+        reply_history_list.append(link_2.get('href'))
+    #for tr_list_2 in form_table.find_all('tr',{'class':re.compile('bw0_all')}):
+    #    td_list_2 = form_table.find('td',{'class':re.compile('icn')})
+    #    for link_2 in  td_list_2.find_all('a',{'title':re.compile('新窗口打開')}):
+    #            reply_history.append(link_2.get('href'))
+    #print(reply_history)
+
+    ### String Split Rep_link && Myreply_history to tid
+    chk_non_rep_link_list = str_split_1(non_rep_link_list)
+    chk_reply_history_list =str_split_2(reply_history_list)
+    ### check items not in exist  reply_history lists 
+    kk = 0
+    for elem in chk_non_rep_link_list :
+        if elem not in chk_reply_history_list:
+          link_str.append(url + non_rep_link_list[kk])
+        kk = kk +1
     return link_str
-"""        
-    ### random get_link_list rows & thread_num                
-    for rows in range(random.randrange(1,6,1)): ## get 1~5 rows
-      #link_str.append(url+get_link_list[rows])
-       thread_num = random.randrange(0,len(get_link_list),1) ##random thread_num
-       link_str.append(url+get_link_list[thread_num])
-    return link_str
-"""
-### get user credit to log records
+
+### Split HD tid
+def str_split_1(sttr_list) :
+   str_split_list=[]
+   for sttr in sttr_list :
+       row_str_split=sttr.split('viewthread&')
+       row_str_split_2 =row_str_split[1].split('&extra')
+       str_split_list.append(row_str_split_2[0])
+   return str_split_list
+
+### Splist my reply history tid 
+def str_split_2(sttr_list) :
+   str_split_list=[]
+   for sttr in sttr_list :
+       row_str_split=sttr.split('viewthread&')
+       row_str_split_2 =row_str_split[1].split('&highlight=')
+       str_split_list.append(row_str_split_2[0])
+   return str_split_list
+
+
+### Get User Credit To Log Records
 def get_credit(myusername):
     web.get(url_credit)
     soup = BeautifulSoup(web.page_source , "html.parser")
@@ -136,12 +178,13 @@ def get_credit(myusername):
      logger.info(li_list.text)
 
 
-## login user page
+### Login User Page
 
 for num in range(len(myusername_list)):
     myusername=myusername_list[num] 
     mypassword =mypassword_list[num]
- 
+    myreply_history_url = reply_history_p1+ uid_list[num] + reply_history_p2
+
     #web = webdriver.Chrome() ## for cron path	
     web = webdriver.Chrome('/usr/local/bin/chromedriver') ## for cron path	
     web.get(url)
@@ -153,8 +196,14 @@ for num in range(len(myusername_list)):
     logger.info("login botton is success")
     time.sleep(random.randrange(5, 10, 1))
 
-    #######  auto_reply
-    auto_get_link_list = get_link(bt_hd_url) ## get BT_HD thread link list 
+    ###  Auto_Reply
+    ### check auto_get_link_list avoid get_link result is 0
+    while 1 :
+             auto_get_link_list = []
+             auto_get_link_list = get_link(url,bt_hd_url,myreply_history_url) 
+             if len(auto_get_link_list) > 0 :
+                break
+
     for auto_link_str in auto_get_link_list :
         auto_reply = reply_format()
         ## threadlist page change
@@ -169,23 +218,24 @@ for num in range(len(myusername_list)):
              #print(auto_link_str,auto_reply)
              logger = logging.getLogger(auto_link_str)
              logger.info("reply is successed ,waiting next link !!")
-             time.sleep(random.randrange(10, 30, 1))	                              
+             time.sleep(random.randrange(10, 30, 1))                                  
         
         except :
                logger = logging.getLogger(auto_link_str)
-               logger.info("reply is failed!!")            	      	
+               logger.info("reply is failed!!")                         
                break
         
-    ### user reply all done 
+    ### User Reply all done 
     logger = logging.getLogger(myusername)
     logger.info("reply all done!!") 
     time.sleep(random.randrange(1, 5, 1))      
-	               
-    #######  login user task
+
+
+    ###  Login user task """
     web.get(url2)
     time.sleep(random.randrange(1, 5, 1))
 
-    ####### got redpackage 
+    ### Got redpackage 
     try: 
         link = WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.XPATH, "//img[@alt='apply']")))
         link.click()
@@ -195,17 +245,12 @@ for num in range(len(myusername_list)):
           logger = logging.getLogger(myusername)
           logger.info("link is not exist!!")
 
-    ## close web 	
-    #### get credit 
-    #format_get_credit = get_credit()
-    #for format_text in format_get_credit :
-    #  logger = logging.getLogger(myusername)
-    #  logger.info(format_text)  
+    ### Get Credit info && close web 
     get_credit(myusername)
     time.sleep(random.randrange(1, 10, 1))
     web.quit()
           
-    ## waiting next trun user
+    ### Waiting next trun user
     if num < (len(myusername_list)-1):	
        logging.info("waiting for next  user!!")
        time.sleep(random.randrange(60, 180, 10))
@@ -217,17 +262,17 @@ logging.info("user all done!!")
 display.stop()
 
 
-## send email on monday 
+### Send Email on monday 
 
 today_week = datetime.date.today().strftime("%w")
 
 if today_week == '1' :
-     ### read for log last 41 line of mail body
+     ### read for log last 47 line of mail body
      body = '' 
      try:
              with open('p2p_login_with_reply.log') as fp:
               data = fp.readlines()
-              for i in data[-41:]:
+              for i in data[-47:]:
                body  = body + i
      
      finally:
