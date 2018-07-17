@@ -34,9 +34,12 @@ uid_list = ["XXXXXXXX","XXXXXXXX"]
 url="http://www.p2p101.com"
 url2="http://www.p2p101.com/home.php?mod=task&amp;do=apply&amp;id=3" ##user_task_page
 bt_hd_url="http://www.p2p101.com/forum.php?mod=forumdisplay&fid=920&page=" ##BT HD page
-url_credit = 'http://www.p2p101.com/home.php?mod=spacecp&ac=credit&showcredit=1'  ## user credit page
-reply_history_p1 ='http://www.p2p101.com/home.php?mod=space&uid='   ## myreply_history_part 1 
-reply_history_p2 ='&do=thread&view=me&type=reply&from=space'        ## myreply_history_part 2
+url_credit = 'http://www.p2p101.com/home.php?mod=spacecp&ac=credit&showcredit=1'
+reply_history_p1 ='http://www.p2p101.com/home.php?mod=space&uid='
+reply_history_p2 ='&do=thread&view=me&type=reply&from=space'
+
+#logger = logging.getLogger(bt_hd_url)
+#logger.info("BT HD page !!")
 
 ### Usage Virtual Dispaly
 display = Display(visible=0, size=(800, 600))
@@ -61,7 +64,8 @@ def reply_format():
     '看起來好似不錯感謝大大的分享!',
     '謝謝分享，終於等到好畫值，讚啦',
     '感恩超級期待這片!收藏了...感謝版主',
-    '自己下載檔案影片 不小心刪除 , 重新下載一次 , 感謝版主分享']
+    '自己下載檔案影片 不小心刪除 , 重新下載一次 , 感謝版主分享',
+    '看過預告片,劇情好像蠻不錯.....感謝分享!!!']
         
     reply_format = [ 
     '下載日期 : ' ,
@@ -100,18 +104,16 @@ def reply_format():
     return  format_str  ##return reply format 
 
 ###  Get BT HD page   
-def get_link(url,bt_hd_url,myreply_history_url):
+def get_link(bt_hd_url):
     page_num = random.randrange(10,20,1)
     bt_hd_url=bt_hd_url+str(page_num)
     get_link_list= []
-    link_str = []
-    reply_history_list = []
     ### Login BT HD page 
     web.get(bt_hd_url) ## login BT HD page
+    time.sleep(random.randrange(1, 2, 1))
     logger = logging.getLogger(bt_hd_url)
     logger.info("BT HD page !!")
     soup = BeautifulSoup(web.page_source , "html.parser")
-    #time.sleep(random.randrange(1, 3, 1))
     ### Get BR HD link
     threadlist = soup.find(id='threadlisttableid')  ## get forum threadlist ID
     for normalthread_list  in threadlist.find_all('tbody',{'id':re.compile('^normalthread_')}):  ## match rows
@@ -119,8 +121,11 @@ def get_link(url,bt_hd_url,myreply_history_url):
             for link  in td_list.find_all('a'):  ##get all link
                 get_link_list.append(link.get('href'))
     ### check non-repetitive link list
-    non_rep_link_list = random.sample(get_link_list, k=random.randrange(1,3,1)) ## get non-repetitive random 2~5 rows from get_link_list
+    non_rep_link_list = random.sample(get_link_list, k=random.randrange(2,4,1)) ## get non-repetitive random 2~5 rows from get_link_list
+    return non_rep_link_list
+    
     #print(non_rep_link_list)
+"""
     time.sleep(random.randrange(3, 5, 1))
     
     ### Login Myreply_history_url
@@ -149,6 +154,27 @@ def get_link(url,bt_hd_url,myreply_history_url):
         kk = kk +1
     return link_str
 
+"""
+def myreply_history(myusername,myreply_history_url):
+    
+    myreply_history_list = []
+    web.get(myreply_history_url)
+    time.sleep(random.randrange(1, 2, 1))
+    logger = logging.getLogger(myusername)
+    logger.info("login myreply history page !!")
+    soup_2 = BeautifulSoup(web.page_source , "html.parser")
+    ### Get Myreply_history url
+    form_table = soup_2.find(id='delform')
+    for link_2 in  form_table.find_all('a',{'title':re.compile('新窗口打開')}):
+        myreply_history_list.append(link_2.get('href'))
+    return myreply_history_list
+    #for tr_list_2 in form_table.find_all('tr',{'class':re.compile('bw0_all')}):
+    #    td_list_2 = form_table.find('td',{'class':re.compile('icn')})
+    #    for link_2 in  td_list_2.find_all('a',{'title':re.compile('新窗口打開')}):
+    #            reply_history.append(link_2.get('href'))
+    #print(reply_history)
+
+
 ### Split HD tid
 def str_split_1(sttr_list) :
    str_split_list=[]
@@ -166,6 +192,21 @@ def str_split_2(sttr_list) :
        row_str_split_2 =row_str_split[1].split('&highlight=')
        str_split_list.append(row_str_split_2[0])
    return str_split_list
+
+
+###check  tid auto_reply && myreply 
+def chk_reply_tid(non_rep_link_list,myreply_history_list) :
+
+    link_str = []
+    chk_non_rep_tid_list = str_split_1(non_rep_link_list)
+    chk_myreply_history_tid_list =str_split_2(myreply_history_list)
+    ### check tid not in exist  myreply_history lists 
+    k = 0
+    for elem in chk_non_rep_tid_list :
+        if elem not in chk_myreply_history_tid_list:
+          link_str.append(non_rep_link_list[k])
+        k = k +1
+    return link_str
 
 
 ### Get User Credit To Log Records
@@ -188,32 +229,37 @@ for num in range(len(myusername_list)):
     #web = webdriver.Chrome() ## for cron path	
     web = webdriver.Chrome('/usr/local/bin/chromedriver') ## for cron path	
     web.get(url)
-    time.sleep(random.randrange(2, 5, 1))
+    time.sleep(random.randrange(1, 5, 1))
     web.find_element_by_id("ls_username").send_keys(myusername)
     web.find_element_by_id("ls_password").send_keys(mypassword)
     web.find_element_by_xpath("//button[contains(@class, 'pn vm')]").submit() ## login
     logger = logging.getLogger(myusername)   
     logger.info("login botton is success")
-    time.sleep(random.randrange(5, 10, 1))
+    time.sleep(random.randrange(1, 5, 1))
 
     ###  Auto_Reply
+    ### Get User myreply_history lists
+    myreply_history_list = myreply_history(myusername,myreply_history_url) 
     ### check auto_get_link_list avoid get_link result is 0
-    while 1 :
+    while 1 :  
              auto_get_link_list = []
-             auto_get_link_list = get_link(url,bt_hd_url,myreply_history_url) 
-             if len(auto_get_link_list) > 0 :
+             non_rep_link_list = get_link(bt_hd_url) ### Get auto_reply_link          
+             chk_link_list =  chk_reply_tid(non_rep_link_list,myreply_history_list)  ## check auto_reply_link avoid is exist in  myreply_history
+             if len(chk_link_list) > 0 :
+                for str_link in chk_link_list :
+                   auto_get_link_list.append(url + str_link)  ### full link addr
                 break
 
     for auto_link_str in auto_get_link_list :
         auto_reply = reply_format()
         ## threadlist page change
         web.get(auto_link_str)
-        time.sleep(random.randrange(2, 5, 1))
+        time.sleep(random.randrange(1, 5, 1))
         
         try : 
              web.find_element_by_id("fastpostmessage").clear()
              web.find_element_by_id("fastpostmessage").send_keys(auto_reply) ## reply format_str on textarea
-             time.sleep(random.randrange(2, 5, 1))
+             time.sleep(random.randrange(1, 5, 1))
              WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.ID, "fastpostsubmit"))).submit() ## textarea submit
              #print(auto_link_str,auto_reply)
              logger = logging.getLogger(auto_link_str)
@@ -225,13 +271,10 @@ for num in range(len(myusername_list)):
                logger.info("reply is failed!!")                         
                break
         
-    ### User Reply all done 
     logger = logging.getLogger(myusername)
     logger.info("reply all done!!") 
-    time.sleep(random.randrange(1, 5, 1))      
-
-
-    ###  Login user task """
+    time.sleep(random.randrange(1, 5, 1))     
+    ###  Login user task 
     web.get(url2)
     time.sleep(random.randrange(1, 5, 1))
 
