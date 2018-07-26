@@ -29,14 +29,16 @@ logging.info(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
 
 myusername_list =["XXXXXXXX","XXXXXXXX"] 
 mypassword_list =["XXXXXXXX","XXXXXXXX"]
-uid_list = ["XXXXXXXX","XXXXXXXX"]   
+uid_list = ["XXXXXXXX","XXXXXXXX","XXXXXX"]   
+
 
 url="http://www.p2p101.com"
 url2="http://www.p2p101.com/home.php?mod=task&amp;do=apply&amp;id=3" ##user_task_page
 bt_hd_url="http://www.p2p101.com/forum.php?mod=forumdisplay&fid=920&page=" ##BT HD page
 url_credit = 'http://www.p2p101.com/home.php?mod=spacecp&ac=credit&showcredit=1'
 reply_history_p1 ='http://www.p2p101.com/home.php?mod=space&uid='
-reply_history_p2 ='&do=thread&view=me&type=reply&from=space'
+reply_history_p2 ='&do=thread&view=me&type=reply&order=dateline&from=space&page='
+
 
 #logger = logging.getLogger(bt_hd_url)
 #logger.info("BT HD page !!")
@@ -105,9 +107,10 @@ def reply_format():
 
 ###  Get BT HD page   
 def get_link(bt_hd_url):
-    page_num = random.randrange(10,20,1)
+    page_num = random.randrange(10,25,1)
     bt_hd_url=bt_hd_url+str(page_num)
     get_link_list= []
+
     ### Login BT HD page 
     web.get(bt_hd_url) ## login BT HD page
     time.sleep(random.randrange(1, 2, 1))
@@ -121,58 +124,46 @@ def get_link(bt_hd_url):
             for link  in td_list.find_all('a'):  ##get all link
                 get_link_list.append(link.get('href'))
     ### check non-repetitive link list
-    non_rep_link_list = random.sample(get_link_list, k=random.randrange(2,4,1)) ## get non-repetitive random 2~5 rows from get_link_list
+    today_week = datetime.date.today().strftime("%w")
+    if int(today_week) > 5 :
+       ran_rows =random.randrange(2,6,1)) ## get non-repetitive random 2~5 rows from get_link_list
+    else :
+       ran_rows =random.randrange(1,4,1)) ## get non-repetitive random 2~5 rows from get_link_list
+
+    non_rep_link_list = random.sample(get_link_list, k=ran_rows
     return non_rep_link_list
     
-    #print(non_rep_link_list)
-"""
-    time.sleep(random.randrange(3, 5, 1))
-    
-    ### Login Myreply_history_url
-    web.get(myreply_history_url)    
-    logger = logging.getLogger(myreply_history_url)
-    logger.info("myreply history page !!")
-    soup_2 = BeautifulSoup(web.page_source , "html.parser")
-    ### Get Myreply_history url
-    form_table = soup_2.find(id='delform')
-    for link_2 in  form_table.find_all('a',{'title':re.compile('新窗口打開')}):
-        reply_history_list.append(link_2.get('href'))
-    #for tr_list_2 in form_table.find_all('tr',{'class':re.compile('bw0_all')}):
-    #    td_list_2 = form_table.find('td',{'class':re.compile('icn')})
-    #    for link_2 in  td_list_2.find_all('a',{'title':re.compile('新窗口打開')}):
-    #            reply_history.append(link_2.get('href'))
-    #print(reply_history)
-
-    ### String Split Rep_link && Myreply_history to tid
-    chk_non_rep_link_list = str_split_1(non_rep_link_list)
-    chk_reply_history_list =str_split_2(reply_history_list)
-    ### check items not in exist  reply_history lists 
-    kk = 0
-    for elem in chk_non_rep_link_list :
-        if elem not in chk_reply_history_list:
-          link_str.append(url + non_rep_link_list[kk])
-        kk = kk +1
-    return link_str
-
-"""
-def myreply_history(myusername,myreply_history_url):
+def myreply_history(myusername,myreply_history_url,log_file):
     
     myreply_history_list = []
-    web.get(myreply_history_url)
     time.sleep(random.randrange(1, 2, 1))
     logger = logging.getLogger(myusername)
     logger.info("login myreply history page !!")
-    soup_2 = BeautifulSoup(web.page_source , "html.parser")
-    ### Get Myreply_history url
-    form_table = soup_2.find(id='delform')
-    for link_2 in  form_table.find_all('a',{'title':re.compile('新窗口打開')}):
-        myreply_history_list.append(link_2.get('href'))
-    return myreply_history_list
-    #for tr_list_2 in form_table.find_all('tr',{'class':re.compile('bw0_all')}):
-    #    td_list_2 = form_table.find('td',{'class':re.compile('icn')})
-    #    for link_2 in  td_list_2.find_all('a',{'title':re.compile('新窗口打開')}):
-    #            reply_history.append(link_2.get('href'))
-    #print(reply_history)
+    ### Get Myreply_history all_page lists
+    page_num =1
+    while 1 :
+             try  :
+                   web.get(myreply_history_url+str(page_num))
+                   soup_2 = BeautifulSoup(web.page_source , "html.parser") 
+                   form_table = soup_2.find(id='delform')
+                   for link_2 in  form_table.find_all('a',{'title':re.compile('新窗口打開')}):
+                       myreply_history_list.append(link_2.get('href'))
+                   ### next myreply page 
+                   WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, "nxt"))).click()
+                   time.sleep(random.randrange(1, 3, 1))
+                   page_num = page_num +1 
+             except :
+                    break
+    ### first time lists write into log file
+    try :
+         all_page_myreply_tids = str_split_2(myreply_history_list) 
+         with open(log_file,'w') as fp :
+              for h_list in all_page_myreply_tids : 
+                  fp.write(h_list + '\n')
+    finally :
+             fp.close()
+
+    return all_page_myreply_tids
 
 
 ### Split HD tid
@@ -193,19 +184,30 @@ def str_split_2(sttr_list) :
        str_split_list.append(row_str_split_2[0])
    return str_split_list
 
+### Splist '\n'
+def str_split_3(sttr_list) :
+   str_split_list=[]
+   for sttr in sttr_list :
+       row_str_split=sttr.split('\n')
+       str_split_list.append(row_str_split[0])
+   return str_split_list
+
 
 ###check  tid auto_reply && myreply 
-def chk_reply_tid(non_rep_link_list,myreply_history_list) :
-
+def chk_reply_tid(non_rep_link_list,all_page_lists_tids,log_file) :
     link_str = []
     chk_non_rep_tid_list = str_split_1(non_rep_link_list)
-    chk_myreply_history_tid_list =str_split_2(myreply_history_list)
-    ### check tid not in exist  myreply_history lists 
-    k = 0
-    for elem in chk_non_rep_tid_list :
-        if elem not in chk_myreply_history_tid_list:
-          link_str.append(non_rep_link_list[k])
-        k = k +1
+    chk_myreply_history_tid_list = all_page_lists_tids
+    ### check tid not in exist  myreply_history lists
+    k=0 
+    with open(log_file,'a') as chkp:
+       for elem in chk_non_rep_tid_list :
+           if elem not in chk_myreply_history_tid_list:  ### not in the lists , will be write into log file
+              link_str.append(non_rep_link_list[k])
+              chkp.write(elem + '\n')
+           k = k +1   
+    
+    chkp.close()      
     return link_str
 
 
@@ -225,7 +227,8 @@ for num in range(len(myusername_list)):
     myusername=myusername_list[num] 
     mypassword =mypassword_list[num]
     myreply_history_url = reply_history_p1+ uid_list[num] + reply_history_p2
-
+    log_file = 'myreply_history_'+myusername+'.log'    
+ 
     #web = webdriver.Chrome() ## for cron path	
     web = webdriver.Chrome('/usr/local/bin/chromedriver') ## for cron path	
     web.get(url)
@@ -237,19 +240,27 @@ for num in range(len(myusername_list)):
     logger.info("login botton is success")
     time.sleep(random.randrange(1, 5, 1))
 
-    ###  Auto_Reply
     ### Get User myreply_history lists
-    myreply_history_list = myreply_history(myusername,myreply_history_url) 
+    ### try to open myreply log_file , if is exist 
+    try :
+          with open(log_file) as rp:
+               row_data = rp.readlines()
+               all_page_lists_tids = str_split_3(row_data) ### get tid lists from log file
+          rp.close()
+    except : 
+            ## first times data list is empty 
+            all_page_lists_tids  = myreply_history(myusername,myreply_history_url,log_file)  ## from all_page_lists_tids
+    
     ### check auto_get_link_list avoid get_link result is 0
     while 1 :  
              auto_get_link_list = []
              non_rep_link_list = get_link(bt_hd_url) ### Get auto_reply_link          
-             chk_link_list =  chk_reply_tid(non_rep_link_list,myreply_history_list)  ## check auto_reply_link avoid is exist in  myreply_history
+             chk_link_list =  chk_reply_tid(non_rep_link_list,all_page_lists_tids,log_file)  ## check auto_reply_link avoid is exist in  myreply_history
              if len(chk_link_list) > 0 :
                 for str_link in chk_link_list :
                    auto_get_link_list.append(url + str_link)  ### full link addr
                 break
-
+    ###  Auto_Reply
     for auto_link_str in auto_get_link_list :
         auto_reply = reply_format()
         ## threadlist page change
