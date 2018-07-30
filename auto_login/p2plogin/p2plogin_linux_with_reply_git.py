@@ -125,12 +125,13 @@ def get_link(bt_hd_url):
                 get_link_list.append(link.get('href'))
     ### check non-repetitive link list
     today_week = datetime.date.today().strftime("%w")
-    if int(today_week) > 5 :
-       ran_rows =random.randrange(2,6,1)) ## get non-repetitive random 2~5 rows from get_link_list
-    else :
-       ran_rows =random.randrange(1,4,1)) ## get non-repetitive random 2~5 rows from get_link_list
 
-    non_rep_link_list = random.sample(get_link_list, k=ran_rows
+    if int(today_week) > 5 :
+            ran_rows = random.randrange(3,7,1) ## get non-repetitive random 2~5 rows from get_link_list
+    else :
+            ran_rows = random.randrange(2,4,1) ## get non-repetitive random 2~5 rows from get_link_list
+
+    non_rep_link_list = random.sample(get_link_list, k=ran_rows)
     return non_rep_link_list
     
 def myreply_history(myusername,myreply_history_url,log_file):
@@ -149,7 +150,7 @@ def myreply_history(myusername,myreply_history_url,log_file):
                    for link_2 in  form_table.find_all('a',{'title':re.compile('新窗口打開')}):
                        myreply_history_list.append(link_2.get('href'))
                    ### next myreply page 
-                   WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, "nxt"))).click()
+                   WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, "nxt")))
                    time.sleep(random.randrange(1, 3, 1))
                    page_num = page_num +1 
              except :
@@ -194,21 +195,20 @@ def str_split_3(sttr_list) :
 
 
 ###check  tid auto_reply && myreply 
-def chk_reply_tid(non_rep_link_list,all_page_lists_tids,log_file) :
+def chk_reply_tid(non_rep_link_list,all_page_lists_tids) :
     link_str = []
+    log_file_tids = []
     chk_non_rep_tid_list = str_split_1(non_rep_link_list)
     chk_myreply_history_tid_list = all_page_lists_tids
     ### check tid not in exist  myreply_history lists
     k=0 
-    with open(log_file,'a') as chkp:
-       for elem in chk_non_rep_tid_list :
-           if elem not in chk_myreply_history_tid_list:  ### not in the lists , will be write into log file
-              link_str.append(non_rep_link_list[k])
-              chkp.write(elem + '\n')
-           k = k +1   
+    for elem in chk_non_rep_tid_list :
+        if elem not in chk_myreply_history_tid_list:  ### not in the lists , will be write into log file
+           link_str.append(non_rep_link_list[k])
+           log_file_tids.append(elem) 
+        k = k +1   
     
-    chkp.close()      
-    return link_str
+    return link_str,log_file_tids
 
 
 ### Get User Credit To Log Records
@@ -255,33 +255,38 @@ for num in range(len(myusername_list)):
     while 1 :  
              auto_get_link_list = []
              non_rep_link_list = get_link(bt_hd_url) ### Get auto_reply_link          
-             chk_link_list =  chk_reply_tid(non_rep_link_list,all_page_lists_tids,log_file)  ## check auto_reply_link avoid is exist in  myreply_history
+             chk_link_list , log_file_tids=  chk_reply_tid(non_rep_link_list,all_page_lists_tids)  ## check auto_reply_link avoid is exist in  myreply_history
              if len(chk_link_list) > 0 :
                 for str_link in chk_link_list :
                    auto_get_link_list.append(url + str_link)  ### full link addr
                 break
     ###  Auto_Reply
-    for auto_link_str in auto_get_link_list :
-        auto_reply = reply_format()
-        ## threadlist page change
-        web.get(auto_link_str)
-        time.sleep(random.randrange(1, 5, 1))
-        
-        try : 
-             web.find_element_by_id("fastpostmessage").clear()
-             web.find_element_by_id("fastpostmessage").send_keys(auto_reply) ## reply format_str on textarea
-             time.sleep(random.randrange(1, 5, 1))
-             WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.ID, "fastpostsubmit"))).submit() ## textarea submit
-             #print(auto_link_str,auto_reply)
-             logger = logging.getLogger(auto_link_str)
-             logger.info("reply is successed ,waiting next link !!")
-             time.sleep(random.randrange(10, 30, 1))                                  
-        
-        except :
-               logger = logging.getLogger(auto_link_str)
-               logger.info("reply is failed!!")                         
-               break
-        
+    log_tids_num = 0 
+    with open(log_file,'a') as chkp:
+        for auto_link_str in auto_get_link_list :
+            auto_reply = reply_format()
+            ## threadlist page change
+            web.get(auto_link_str)
+            time.sleep(random.randrange(1, 5, 1))
+            try : 
+                 web.find_element_by_id("fastpostmessage").clear()
+                 web.find_element_by_id("fastpostmessage").send_keys(auto_reply) ## reply format_str on textarea
+                 time.sleep(random.randrange(1, 5, 1))
+                 WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.ID, "fastpostsubmit"))).submit() ## textarea submit
+                 #print(auto_link_str,auto_reply)
+                 ###write into log files 
+                 chkp.write(log_file_tids[log_tids_num] + '\n')
+                 log_tids_num = log_tids_num +1
+                 logger = logging.getLogger(auto_link_str)
+                 logger.info("reply is successed ,waiting next link !!")
+                 time.sleep(random.randrange(10, 30, 1))                                  
+
+            except :
+                    logger = logging.getLogger(auto_link_str)
+                    logger.info("reply is failed!!")                         
+                    break
+
+    chkp.close()
     logger = logging.getLogger(myusername)
     logger.info("reply all done!!") 
     time.sleep(random.randrange(1, 5, 1))     
