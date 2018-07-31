@@ -38,7 +38,7 @@ bt_hd_url="http://www.p2p101.com/forum.php?mod=forumdisplay&fid=920&page=" ##BT 
 url_credit = 'http://www.p2p101.com/home.php?mod=spacecp&ac=credit&showcredit=1'
 reply_history_p1 ='http://www.p2p101.com/home.php?mod=space&uid='
 reply_history_p2 ='&do=thread&view=me&type=reply&order=dateline&from=space&page='
-
+today_week = datetime.date.today().strftime("%w")
 
 #logger = logging.getLogger(bt_hd_url)
 #logger.info("BT HD page !!")
@@ -106,7 +106,7 @@ def reply_format():
     return  format_str  ##return reply format 
 
 ###  Get BT HD page   
-def get_link(bt_hd_url):
+def get_link(bt_hd_url,today_week):
     page_num = random.randrange(10,25,1)
     bt_hd_url=bt_hd_url+str(page_num)
     get_link_list= []
@@ -124,7 +124,7 @@ def get_link(bt_hd_url):
             for link  in td_list.find_all('a'):  ##get all link
                 get_link_list.append(link.get('href'))
     ### check non-repetitive link list
-    today_week = datetime.date.today().strftime("%w")
+    #today_week = datetime.date.today().strftime("%w")
 
     if int(today_week) > 5 :
             ran_rows = random.randrange(3,7,1) ## get non-repetitive random 2~5 rows from get_link_list
@@ -254,9 +254,10 @@ for num in range(len(myusername_list)):
     ### check auto_get_link_list avoid get_link result is 0
     while 1 :  
              auto_get_link_list = []
-             non_rep_link_list = get_link(bt_hd_url) ### Get auto_reply_link          
+             non_rep_link_list = get_link(bt_hd_url,today_week) ### Get auto_reply_link          
              chk_link_list , log_file_tids=  chk_reply_tid(non_rep_link_list,all_page_lists_tids)  ## check auto_reply_link avoid is exist in  myreply_history
-             if len(chk_link_list) > 0 :
+             
+             if len(chk_link_list) > 1 :  ### non-repetitive reply link more than the 1
                 for str_link in chk_link_list :
                    auto_get_link_list.append(url + str_link)  ### full link addr
                 break
@@ -323,7 +324,7 @@ display.stop()
 
 ### Send Email on monday 
 
-today_week = datetime.date.today().strftime("%w")
+#today_week = datetime.date.today().strftime("%w")
 
 if today_week == '1' :
      ### read for log last 47 line of mail body
