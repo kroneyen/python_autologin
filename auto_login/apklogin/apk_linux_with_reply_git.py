@@ -14,8 +14,9 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 import random
-import send_mail
+#import send_mail
 from bs4 import BeautifulSoup
+from selenium.webdriver.common.action_chains import ActionChains
 import re
 
 logging.basicConfig(level=logging.INFO,
@@ -27,14 +28,13 @@ logging.basicConfig(level=logging.INFO,
 
 logging.info(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
 
-myusername_list =["XXXXX"] 
-mypassword_list =["XXXX"]
-uid_list = ["XXXX"]   
-
+myusername_list =["XXXXXX"] 
+mypassword_list =["XXXXXXXX"]
+uid_list = ["XXXXXXXX"]
 
 url="https://apk.tw/forum.php"
 url2="https://apk.tw/home.php?mod=task&do=view&id=7" ##user_task_page of week
-bt_hd_url="https://apk.tw/forum-883-1.html" ##BT HD page
+bt_hd_url="https://apk.tw/forum-883" ##BT HD page
 #bt_hd_url="https://apk.tw/forum-883-1.html" ##BT HD page
 #https://apk.tw/thread-884337-1-1.html
 url_credit = 'https://apk.tw/home.php?mod=spacecp&ac=credit'
@@ -229,76 +229,49 @@ def get_credit(myusername):
 for num in range(len(myusername_list)):
     myusername=myusername_list[num] 
     mypassword =mypassword_list[num]
-    myreply_history_url = reply_history_p1+ uid_list[num] + reply_history_p2
-    log_file = 'myreply_history_'+myusername+'.log'    
+    #myreply_history_url = reply_history_p1+ uid_list[num] + reply_history_p2
+    #log_file = 'myreply_history_'+myusername+'.log'    
  
     #web = webdriver.Chrome() ## for cron path	
     web = webdriver.Chrome('/usr/local/bin/chromedriver') ## for cron path	
     web.get(url)
-    time.sleep(random.randrange(1, 5, 1))
-    web.find_element_by_id("ls_username").send_keys(myusername)
-    web.find_element_by_id("ls_password").send_keys(mypassword)
-    web.find_element_by_xpath("//button[contains(@class, 'pn vm')]").submit() ## login
-    logger = logging.getLogger(myusername)   
-    logger.info("login botton is success")
-    time.sleep(random.randrange(1, 5, 1))
+    time.sleep(random.randrange(3, 5, 1))
 
-    ### Get User myreply_history lists
-    ### try to open myreply log_file , if is exist 
+    ### hidden form 
+    loginForm  = web.find_element_by_class_name("mousebox")                                                                                                   
+    fromname   = web.find_element_by_css_selector(".mousebox  #ls_username")                                                                                  
+    frompwd   = web.find_element_by_css_selector(".mousebox #ls_password")                                                                                    
+    click_btn =web.find_element_by_xpath("//*[@id='lsform']/div/div/button/em")                                                                               
+    #click_btn =web.find_element_by_xpath("//button[contains(@class, 'pn vm')]")                                                                              
+    ### mouse move to element loging
     try :
-          with open(log_file) as rp:
-               row_data = rp.readlines()
-               all_page_lists_tids = str_split_3(row_data) ### get tid lists from log file
-          rp.close()
-    except : 
-            ## first times data list is empty 
-            all_page_lists_tids  = myreply_history(myusername,myreply_history_url,log_file)  ## from all_page_lists_tids
-    
-    ### check auto_get_link_list avoid get_link result is 0
-    while 1 :  
-             auto_get_link_list = []
-             non_rep_link_list = get_link(bt_hd_url,today_week) ### Get auto_reply_link          
-             chk_link_list , log_file_tids=  chk_reply_tid(non_rep_link_list,all_page_lists_tids)  ## check auto_reply_link avoid is exist in  myreply_history
-             
-             if len(chk_link_list) > 1 :  ### non-repetitive reply link more than the 1
-                for str_link in chk_link_list :
-                   auto_get_link_list.append(url + str_link)  ### full link addr
-                break
-    ###  Auto_Reply
-    log_tids_num = 0 
-    with open(log_file,'a') as chkp:
-        for auto_link_str in auto_get_link_list :
-            auto_reply = reply_format()
-            ## threadlist page change
-            web.get(auto_link_str)
-            time.sleep(random.randrange(1, 5, 1))
-            try : 
-                 web.find_element_by_id("fastpostmessage").clear()
-                 web.find_element_by_id("fastpostmessage").send_keys(auto_reply) ## reply format_str on textarea
-                 time.sleep(random.randrange(1, 5, 1))
-                 WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.ID, "fastpostsubmit"))).submit() ## textarea submit
-                 #print(auto_link_str,auto_reply)
-                 ###write into log files 
-                 chkp.write(log_file_tids[log_tids_num] + '\n')
-                 log_tids_num = log_tids_num +1
-                 logger = logging.getLogger(auto_link_str)
-                 logger.info("reply is successed ,waiting next link !!")
-                 time.sleep(random.randrange(10, 30, 1))                                  
+         ActionChains(web).move_to_element(loginForm).send_keys_to_element(fromname,myusername).send_keys_to_element(frompwd,mypassword).click(click_btn).perform()
+         logger = logging.getLogger(myusername)
+         logger.info("login botton is success")
+         time.sleep(random.randrange(5, 10, 1))
+         
+    except :  
+            logger = logging.getLogger(myusername)
+            logger.info("login botton is success")
+            break
+    ### Got signature 
+    try:
+        signature = WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.ID,"my_amupper")))
+        signature.click()
+        logger = logging.getLogger(myusername)
+        logger.info("signature is successed!!")
+    except:
+          logger = logging.getLogger(myusername)
+          logger.info("signature is not exist!!")
 
-            except :
-                    logger = logging.getLogger(auto_link_str)
-                    logger.info("reply is failed!!")                         
-                    break
+    time.sleep(random.randrange(3, 10, 1)) 
 
-    chkp.close()
-    logger = logging.getLogger(myusername)
-    logger.info("reply all done!!") 
-    time.sleep(random.randrange(1, 5, 1))     
-    ###  Login user task 
+    ### auto reply not yat 
+    ###
+    ###
+
+    ### Got task of 7 days
     web.get(url2)
-    time.sleep(random.randrange(1, 5, 1))
-
-    ### Got task && signature id:ppered
     try: 
         link = WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.XPATH, "//img[@alt='apply']")))
         link.click()
@@ -306,16 +279,9 @@ for num in range(len(myusername_list)):
         logger.info("get task is successed!!")
     except:
           logger = logging.getLogger(myusername)
-          logger.info("link is not exist!!")
-   
-    try:
-        signature = WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.ID,"ppered")))
-        signature.click()
-        logger = logging.getLogger(myusername)
-        logger.info("signature is successed!!")
-    except:
-          logger = logging.getLogger(myusername)
-          logger.info("signature is not exist!!")
+          logger.info("task is not exist!!")
+
+    time.sleep(random.randrange(1, 5, 1)) 
 
 
     ### Get Credit info && close web 
@@ -343,15 +309,14 @@ if today_week == '1' :
      ### read for log last 47 line of mail body
      body = '' 
      try:
-             with open('p2p_login_with_reply.log') as fp:
+             with open('apk_login_with_reply.log') as fp:
               data = fp.readlines()
-              for i in data[-47:]:
+              for i in data[-15:]:
                body  = body + i
      
      finally:
          fp.close()
      
      
-     send_mail.send_email('p2plogin auto loging',body)
-
+     send_mail.send_email('apklogin auto loging',body)
 
