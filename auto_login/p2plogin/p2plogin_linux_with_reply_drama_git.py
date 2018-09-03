@@ -1,0 +1,343 @@
+#! /usr/bin/env python3.6
+# -*- coding: utf-8 -*-
+
+## chromedrive 2.32
+
+from selenium import webdriver
+#from selenium.webdriver.common.keys import Keys
+import time
+import datetime
+from pyvirtualdisplay import Display #nodisplay on chrome
+from selenium.common.exceptions import NoSuchElementException ## show error msg
+import logging
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+import random
+import send_mail
+from bs4 import BeautifulSoup
+import re
+
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S',
+                    filename='p2p_login_with_reply_drama.log',
+		    filemode='a')
+
+
+logging.info(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
+
+myusername_list =["XXXXXXXX","XXXXXXXX"] 
+mypassword_list =["XXXXXXXX","XXXXXXXX"]
+uid_list = ["XXXXXXXX","XXXXXXXX","XXXXXX"]   
+
+
+url="http://www.p2p101.com"
+url2="http://www.p2p101.com/home.php?mod=task&amp;do=apply&amp;id=3" ##user_task_page
+bt_drama_url="http://www.p2p101.com/forum.php?mod=forumdisplay&fid=405&page=" ##BT drama page
+#bt_drama_url="http://www.p2p101.com/forum-405-1.html" ##BT drama page
+url_credit = 'http://www.p2p101.com/home.php?mod=spacecp&ac=credit&showcredit=1'
+reply_history_p1 ='http://www.p2p101.com/home.php?mod=space&uid='
+reply_history_p2 ='&do=thread&view=me&type=reply&order=dateline&from=space&page='
+today_week = datetime.date.today().strftime("%w")
+
+#logger = logging.getLogger(bt_drama_url)
+#logger.info("BT HD page !!")
+
+### Usage Virtual Dispaly
+display = Display(visible=0, size=(800, 600))
+display.start()
+#web = webdriver.Chrome()
+#web = webdriver.Chrome('/usr/local/bin/chromedriver') ## for cron path
+
+
+def reply_format():
+    reply_str_all =[]
+    today = time.strftime('%Y/%m/%d' , time.localtime())
+    #download_speed = str(random.randrange(0, 1000,1))+'kb/s'
+    download_speed = str(0)+'kb/s'
+
+    feedback =[
+    '蠻想看的 無權限下載',
+    '慘念~~權限不足.....!!!',
+    '無法享受 沒權限看!!',
+    '想看阿.....想看+++++'
+    ]
+
+    reply_format = [
+    '下載日期 : ' ,
+    '下載方式： 無' ,
+    '下載速度 : ' ,
+    '解壓方式： 無 ' ,
+    '問題反饋： 無 ' ,
+    '觀看感受 : ' ]
+
+    for i in range(len(reply_format)) :
+        if i ==0 :
+         #print(reply_format[i],today)
+         reply = reply_format[i]
+         reply_str = reply + today
+         reply_str_all.append(reply_str)
+        elif i == 2 :
+         #print(reply_format[i],download_speed) 
+         reply = reply_format[i]
+         reply_str = reply + download_speed
+         reply_str_all.append(reply_str)
+        elif i ==  5:
+         #print(reply_format[i],feedback[random.randrange(1, len(feedback),1 )])
+         reply = reply_format[i]
+         reply_str = reply + feedback[random.randrange(1, len(feedback),1 )]
+         reply_str_all.append(reply_str)
+        else :
+         #print(reply_format[i])
+         reply = reply_format[i]
+         reply_str = reply
+         reply_str_all.append(reply_str)
+    ## lists modle change to string line modle & return  
+    format_str =''
+    for sstr in reply_str_all:
+        format_str = format_str + sstr + '\n'
+
+    return  format_str  ##return reply format 
+
+
+
+
+
+###  Get BT HD page   
+def get_link(bt_drama_url,today_week):
+    page_num = random.randrange(10,35,1)
+    bt_drama_url=bt_drama_url+str(page_num)
+    get_link_list= []
+
+    ### Login BT HD page 
+    web.get(bt_drama_url) ## login BT HD page
+    time.sleep(random.randrange(1, 2, 1))
+    logger = logging.getLogger(bt_drama_url)
+    logger.info("BT drama page !!")
+    soup = BeautifulSoup(web.page_source , "html.parser")
+    ### Get BR HD link
+    threadlist = soup.find(id='threadlisttableid')  ## get forum threadlist ID
+    for normalthread_list  in threadlist.find_all('tbody',{'id':re.compile('^normalthread_')}):  ## match rows
+        for td_list in normalthread_list.find_all('td',{'class':re.compile('icn')}):
+            for link  in td_list.find_all('a'):  ##get all link
+                get_link_list.append(link.get('href'))
+    ### check non-repetitive link list
+    #today_week = datetime.date.today().strftime("%w")
+
+    if int(today_week) > 5 :
+            ran_rows = random.randrange(5,10,1) ## get non-repetitive random 2~5 rows from get_link_list
+    else :
+            ran_rows = random.randrange(2,4,1) ## get non-repetitive random 2~5 rows from get_link_list
+
+    non_rep_link_list = random.sample(get_link_list, k=ran_rows)
+    return non_rep_link_list
+    
+def myreply_history(myusername,myreply_history_url,log_file):
+    
+    myreply_history_list = []
+    time.sleep(random.randrange(1, 2, 1))
+    logger = logging.getLogger(myusername)
+    logger.info("login myreply history page !!")
+    ### Get Myreply_history all_page lists
+    page_num =1
+    while 1 :
+             try  :
+                   web.get(myreply_history_url+str(page_num))
+                   soup_2 = BeautifulSoup(web.page_source , "html.parser") 
+                   form_table = soup_2.find(id='delform')
+                   for link_2 in  form_table.find_all('a',{'title':re.compile('新窗口打開')}):
+                       myreply_history_list.append(link_2.get('href'))
+                   ### next myreply page 
+                   WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, "nxt")))
+                   time.sleep(random.randrange(1, 3, 1))
+                   page_num = page_num +1 
+             except :
+                    break
+    ### first time lists write into log file
+    try :
+         all_page_myreply_tids = str_split_2(myreply_history_list) 
+         with open(log_file,'w') as fp :
+              for h_list in all_page_myreply_tids : 
+                  fp.write(h_list + '\n')
+    finally :
+             fp.close()
+
+    return all_page_myreply_tids
+
+
+### Split HD tid
+def str_split_1(sttr_list) :
+   str_split_list=[]
+   for sttr in sttr_list :
+       row_str_split=sttr.split('viewthread&')
+       row_str_split_2 =row_str_split[1].split('&extra')
+       str_split_list.append(row_str_split_2[0])
+   return str_split_list
+
+### Splist my reply history tid 
+def str_split_2(sttr_list) :
+   str_split_list=[]
+   for sttr in sttr_list :
+       row_str_split=sttr.split('viewthread&')
+       row_str_split_2 =row_str_split[1].split('&highlight=')
+       str_split_list.append(row_str_split_2[0])
+   return str_split_list
+
+### Splist '\n'
+def str_split_3(sttr_list) :
+   str_split_list=[]
+   for sttr in sttr_list :
+       row_str_split=sttr.split('\n')
+       str_split_list.append(row_str_split[0])
+   return str_split_list
+
+
+###check  tid auto_reply && myreply 
+def chk_reply_tid(non_rep_link_list,all_page_lists_tids) :
+    link_str = []
+    log_file_tids = []
+    chk_non_rep_tid_list = str_split_1(non_rep_link_list)
+    chk_myreply_history_tid_list = all_page_lists_tids
+    ### check tid not in exist  myreply_history lists
+    k=0 
+    for elem in chk_non_rep_tid_list :
+        if elem not in chk_myreply_history_tid_list:  ### not in the lists , will be write into log file
+           link_str.append(non_rep_link_list[k])
+           log_file_tids.append(elem) 
+        k = k +1   
+    
+    return link_str,log_file_tids
+
+
+### Get User Credit To Log Records
+def get_credit(myusername):
+    web.get(url_credit)
+    soup = BeautifulSoup(web.page_source , "html.parser")
+    credit = soup.find('ul',{'class':re.compile('creditl mtm bbda cl')})
+    for li_list  in credit.find_all('li'):
+     logger = logging.getLogger(myusername)
+     logger.info(li_list.text)
+
+
+### Login User Page
+
+for num in range(len(myusername_list)):
+    myusername=myusername_list[num] 
+    mypassword =mypassword_list[num]
+    myreply_history_url = reply_history_p1+ uid_list[num] + reply_history_p2
+    log_file = 'myreply_history_'+myusername+'.log'    
+ 
+    #web = webdriver.Chrome() ## for cron path	
+    web = webdriver.Chrome('/usr/local/bin/chromedriver') ## for cron path	
+    web.get(url)
+    time.sleep(random.randrange(1, 5, 1))
+    web.find_element_by_id("ls_username").send_keys(myusername)
+    web.find_element_by_id("ls_password").send_keys(mypassword)
+    web.find_element_by_xpath("//button[contains(@class, 'pn vm')]").submit() ## login
+    logger = logging.getLogger(myusername)   
+    logger.info("login botton is success")
+    time.sleep(random.randrange(1, 5, 1))
+
+    ### Get User myreply_history lists
+    ### try to open myreply log_file , if is exist 
+    try :
+          with open(log_file) as rp:
+               row_data = rp.readlines()
+               all_page_lists_tids = str_split_3(row_data) ### get tid lists from log file
+          rp.close()
+    except : 
+            ## first times data list is empty 
+            all_page_lists_tids  = myreply_history(myusername,myreply_history_url,log_file)  ## from all_page_lists_tids
+    
+    ### check auto_get_link_list avoid get_link result is 0
+    while 1 :  
+             auto_get_link_list = []
+             non_rep_link_list = get_link(bt_drama_url,today_week) ### Get auto_reply_link          
+             chk_link_list , log_file_tids=  chk_reply_tid(non_rep_link_list,all_page_lists_tids)  ## check auto_reply_link avoid is exist in  myreply_history
+             
+             if len(chk_link_list) > 1 :  ### non-repetitive reply link more than the 1
+                for str_link in chk_link_list :
+                   auto_get_link_list.append(url + str_link)  ### full link addr
+                break
+    ###  Auto_Reply
+    log_tids_num = 0 
+    with open(log_file,'a') as chkp:
+        for auto_link_str in auto_get_link_list :
+            auto_reply = reply_format()
+            ## threadlist page change
+            web.get(auto_link_str)
+            time.sleep(random.randrange(1, 5, 1))
+            try : 
+                 web.find_element_by_id("fastpostmessage").clear()
+                 web.find_element_by_id("fastpostmessage").send_keys(auto_reply) ## reply format_str on textarea
+                 time.sleep(random.randrange(1, 5, 1))
+                 WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.ID, "fastpostsubmit"))).submit() ## textarea submit
+                 #print(auto_link_str,auto_reply)
+                 ###write into log files 
+                 chkp.write(log_file_tids[log_tids_num] + '\n')
+                 log_tids_num = log_tids_num +1
+                 logger = logging.getLogger(auto_link_str)
+                 logger.info("reply is successed ,waiting next link !!")
+                 time.sleep(random.randrange(10, 30, 1))                                  
+
+            except :
+                    logger = logging.getLogger(auto_link_str)
+                    logger.info("reply is failed!!")                         
+                    break
+
+    chkp.close()
+    logger = logging.getLogger(myusername)
+    logger.info("reply all done!!") 
+    time.sleep(random.randrange(1, 5, 1))     
+    ###  Login user task 
+    web.get(url2)
+    time.sleep(random.randrange(1, 5, 1))
+
+    ### Got redpackage 
+    try: 
+        link = WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.XPATH, "//img[@alt='apply']")))
+        link.click()
+        logger = logging.getLogger(myusername)		
+        logger.info("get redpackage is successed!!")
+    except:
+          logger = logging.getLogger(myusername)
+          logger.info("link is not exist!!")
+
+    ### Get Credit info && close web 
+    get_credit(myusername)
+    time.sleep(random.randrange(1, 10, 1))
+    web.quit()
+          
+    ### Waiting next trun user
+    if num < (len(myusername_list)-1):	
+       logging.info("waiting for next  user!!")
+       time.sleep(random.randrange(60, 180, 10))
+    else :
+          break
+
+time.sleep(random.randrange(1, 10, 1))
+logging.info("user all done!!")
+display.stop()
+
+
+### Send Email on monday 
+
+#today_week = datetime.date.today().strftime("%w")
+
+if today_week == '1' :
+     ### read for log last 47 line of mail body
+     body = '' 
+     try:
+             with open('p2p_login_with_reply_drama.log') as fp:
+              data = fp.readlines()
+              for i in data[-47:]:
+               body  = body + i
+     
+     finally:
+         fp.close()
+     
+     
+     send_mail.send_email('p2plogin_drama auto loging',body)
+
+
