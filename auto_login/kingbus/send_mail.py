@@ -7,9 +7,18 @@ def send_email(subject, body):
     import smtplib
     from email.mime.text import MIMEText
     from email.mime.multipart import MIMEMultipart
+    import configparser
+    import ast
 
-    FROM = 'from_user_maiil'
-    TO = ['to_user_mail']
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+    ## get values from config mail section 
+    m_from = config.get('mail','m_from')
+    m_to = ast.literal_eval(config.get('mail','m_to'))
+    m_pwd = config.get('mail','m_pwd')
+
+    FROM = m_from 
+    TO = m_to  
     # Prepare actual message
     msgText = MIMEText(body,'plain','utf-8')   ## mail body of chinese , setting harset utf8
     msg = MIMEMultipart()  ## merge mail  multiple part 
@@ -21,7 +30,7 @@ def send_email(subject, body):
         #server.set_debuglevel(1)
         server.ehlo()
         server.starttls()
-        server.login(from_user_mail,pwd)
+        server.login(FROM, m_pwd) 
         server.sendmail(FROM, TO, msg.as_string())  ## msg transfer  to string
         server.quit()
         if __name__ == '__main__':
@@ -29,4 +38,3 @@ def send_email(subject, body):
     except:
         if __name__ == '__main__':
          print ('failed to send mail')
-    

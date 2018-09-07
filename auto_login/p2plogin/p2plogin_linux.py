@@ -4,7 +4,6 @@
 ## chromedrive 2.32
 
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
 import time
 import datetime
 from pyvirtualdisplay import Display #nodisplay on chrome
@@ -25,8 +24,6 @@ logging.basicConfig(level=logging.INFO,
 
 logging.info(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
 
-myusername_list =["XXXXXXXX","XXXXXXXX"] 
-mypassword_list =["XXXXXXXX","XXXXXXXX"]
 
 
 url="http://www.p2p101.com/"
@@ -38,8 +35,28 @@ display.start()
 #web = webdriver.Chrome()
 #web = webdriver.Chrome('/usr/local/bin/chromedriver') ## for cron path
 
+def get_config():
+    import configparser
+    import ast
+
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+    for section_list in config.sections(): ## get  sctions
+        for key in config[section_list] : ## get keys
+            ## get values
+            if section_list =='user':
+               myusername_list = ast.literal_eval(config.get(section_list,key))
+            elif section_list =='pwd':
+               mypassword_list=ast.literal_eval(config.get(section_list,key))
+            elif section_list =='uid':
+               uid_list=ast.literal_eval(config.get(section_list,key))
+
+    return myusername_list , mypassword_list , uid_list
+
+
+
 ## login user page
-logg_list = []
+myusername_list , mypassword_list , uid_list = get_config() ## get loging user && pwd 
 
 for i in range(len(myusername_list)):
 	myusername=myusername_list[i] 

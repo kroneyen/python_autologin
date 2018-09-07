@@ -27,9 +27,7 @@ logging.basicConfig(level=logging.INFO,
 
 logging.info(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
 
-###data
-myusername_list =["XXXXXXXXX"] 
-mypassword_list =["XXXXXXXXX"]
+
 s_start_id ='A03' ##<option value="A03">台北轉運</option>
 s_end_id ='H26' ##<option value="H26">朝　　馬　</option>
 ##crontab for monday 
@@ -39,13 +37,6 @@ time_from_h ='18'
 time_from_m ='50'
 time_return_h ='06'
 time_return_m ='00'
-#seat_from='ctl00_ContentPlaceHolder1_ckb1A08'  ## from seat 08
-#seat_return='ctl00_ContentPlaceHolder1_ckb1B08' ## return seat 08
-
-ticket_num = ['XXXXXXXXX12','XXXXXXXXX23','XXXXXXXXX34',
-              'XXXXXXXXX45','XXXXXXXXX56','XXXXXXXXX67',
-              'XXXXXXXXX78','XXXXXXXXX89'
-              ]
 
 def random_ticket():
   i = random.randrange(0,len(ticket_num),1)
@@ -57,6 +48,23 @@ def random_ticket():
 
   return ticket_1 , ticket_2
 
+def get_config():
+    import configparser
+    import ast
+
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+    for section_list in config.sections(): ## get  sctions
+        for key in config[section_list] : ## get keys
+            ## get values
+            if section_list =='user':
+               myusername_list = ast.literal_eval(config.get(section_list,key))
+            elif section_list =='pwd':
+               mypassword_list = ast.literal_eval(config.get(section_list,key))
+            elif section_list =='ticket':
+               ticket_num = ast.literal_eval(config.get(section_list,key))
+
+    return myusername_list , mypassword_list , ticket_num
 
 
 order_url="https://order.kingbus.com.tw/ORD/ORD_M_1520_OrderGoBack.aspx"
@@ -68,6 +76,8 @@ display.start()
 #web = webdriver.Chrome('/usr/local/bin/chromedriver') ## for cron path
 
 ## step 1
+## get user & pwd
+myusername_list , mypassword_list , ticket_num  = get_config() ## get loging user && pwd
 
 ## mutiple user booking
 for i in range(len(myusername_list)):
@@ -75,12 +85,12 @@ for i in range(len(myusername_list)):
   mypassword =mypassword_list[i]
   web = webdriver.Chrome('/usr/local/bin/chromedriver') ## for cron path	
   web.get(order_url)
-  time.sleep(random.randrange(1, 5, 1))	
+  time.sleep(random.randrange(3, 5, 1))	
   web.find_element_by_id("ctl00_ContentPlaceHolder1_txtCustomer_ID").send_keys(myusername)
   web.find_element_by_id("ctl00_ContentPlaceHolder1_txtPhone").send_keys(mypassword)
-  time.sleep(random.randrange(1, 5, 1))
+  time.sleep(random.randrange(3, 5, 1))
   web.find_element_by_id("ctl00_ContentPlaceHolder1_btnStep1_OK").click()
-  time.sleep(random.randrange(1, 5, 1))
+  time.sleep(random.randrange(3, 5, 1))
 
 logging.info("step1_next_click  login is success")
 
@@ -89,35 +99,35 @@ logging.info("step1_next_click  login is success")
 Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlStation_ID_From")).select_by_value(s_start_id)
 logging.info("From_location  is success")
 
-time.sleep(random.randrange(1, 5, 1))
+time.sleep(random.randrange(3, 5, 1))
 Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlStation_ID_To")).select_by_value(s_end_id)
 
 logging.info("Destination_location  is success")
-time.sleep(random.randrange(1, 5, 1))
+time.sleep(random.randrange(3, 5, 1))
 
 ### choice station  from date , rutern date
 web.find_element_by_id("ctl00_ContentPlaceHolder1_txtAOut_Dt").send_keys(day_from)
 
-time.sleep(random.randrange(1, 5, 1))
+time.sleep(random.randrange(3, 5, 1))
 
 web.find_element_by_id("ctl00_ContentPlaceHolder1_txtBOut_Dt").send_keys(day_return)
 
-time.sleep(random.randrange(1, 5, 1))
+time.sleep(random.randrange(3, 5, 1))
 logging.info("Date choose  is success")
 
 ### search from time table
 
 Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlAHour")).select_by_value(time_from_h)
-time.sleep(random.randrange(1, 5, 1))
+time.sleep(random.randrange(3, 5, 1))
 Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlAMinute")).select_by_value(time_from_m)
-time.sleep(random.randrange(1, 5, 1))
+time.sleep(random.randrange(3, 5, 1))
 
 ### search return time table
 
 Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlBHour")).select_by_value(time_return_h)
-time.sleep(random.randrange(1, 5, 1))
+time.sleep(random.randrange(3, 5, 1))
 Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlBMinute")).select_by_value(time_return_m)
-time.sleep(random.randrange(1, 5, 1))
+time.sleep(random.randrange(3, 5, 1))
 
 ### search time table button
 
@@ -137,9 +147,9 @@ except :
 
 ## check from time table
 try:
-    from_botton = WebDriverWait(web, 15).until(EC.element_to_be_clickable((By.XPATH, "//*[@id='ctl00_ContentPlaceHolder1_grdAList']/tbody/tr[3]/td[2]/input")))
+    from_botton = WebDriverWait(web, 30).until(EC.element_to_be_clickable((By.XPATH, "//*[@id='ctl00_ContentPlaceHolder1_grdAList']/tbody/tr[3]/td[2]/input")))
     from_botton.click() 
-    time.sleep(random.randrange(1, 5, 1))
+    time.sleep(random.randrange(3, 5, 1))
     logging.info("step3_click_1 check from time table  is success")
 
 except:
@@ -150,9 +160,9 @@ except:
 ## check return time table
 
 try:          
-    return_botton = WebDriverWait(web, 15).until(EC.element_to_be_clickable((By.XPATH, "//*[@id='ctl00_ContentPlaceHolder1_grdBList']/tbody/tr[3]/td[2]/input")))
+    return_botton = WebDriverWait(web, 30).until(EC.element_to_be_clickable((By.XPATH, "//*[@id='ctl00_ContentPlaceHolder1_grdBList']/tbody/tr[3]/td[2]/input")))
     return_botton.click() 
-    time.sleep(random.randrange(1, 3, 1))
+    time.sleep(random.randrange(3, 5, 1))
     logging.info("step3_click_2 check return time table is success")
 
 
@@ -164,9 +174,9 @@ except:
 
 ### check time table button 
 try:
-    step3_click = WebDriverWait(web, 15).until(EC.element_to_be_clickable((By.ID, "ctl00_ContentPlaceHolder1_btnStep3_OK")))
+    step3_click = WebDriverWait(web, 30).until(EC.element_to_be_clickable((By.ID, "ctl00_ContentPlaceHolder1_btnStep3_OK")))
     step3_click.click()
-    time.sleep(random.randrange(1, 3, 1))	
+    time.sleep(random.randrange(3, 5, 1))	
     logging.info("step3_next check time table button  is success")
 
 except:
@@ -206,7 +216,7 @@ for num in seat_list:  ##seat num from seat_list
   order_seat_from,order_seat_return = change_seat(num)
   if j < len(seat_list) : 
 	   try:
-	      from_seat = WebDriverWait(web, 3).until(EC.element_to_be_clickable((By.ID, order_seat_from)))
+	      from_seat = WebDriverWait(web, 5).until(EC.element_to_be_clickable((By.ID, order_seat_from)))
 	      from_seat.click()
 	      j = 99  ## got seat 
 	      logger_num1 = logging.getLogger(num)
@@ -223,7 +233,7 @@ for num in seat_list:  ##seat num from seat_list
  
   if k < len(seat_list) :
 	   try:
-	      return_seat = WebDriverWait(web, 3).until(EC.element_to_be_clickable((By.ID, order_seat_return)))
+	      return_seat = WebDriverWait(web, 5).until(EC.element_to_be_clickable((By.ID, order_seat_return)))
 	      return_seat.click()
 	      k = 99
 	      logger_num2 = logging.getLogger(num)	
@@ -275,7 +285,7 @@ if j == 99 and k == 99: # choice sucesses
         try :
         	step4_click = web.find_element_by_id("ctl00_ContentPlaceHolder1_btnStep4_OK")
         	step4_click.click()
-        	time.sleep(random.randrange(1, 10, 1))
+        	time.sleep(random.randrange(3, 5, 1))
         	#print('step4_click book ticket is success')
         	logging.info("step4_click book  ticket  is success")
         except :
@@ -293,7 +303,7 @@ if j == 99 and k == 99: # choice sucesses
         
         	from_ticket ,return_ticket = random_ticket()
         
-        	time.sleep(random.randrange(1, 5, 1))
+        	time.sleep(random.randrange(3, 5, 1))
         
         	## payment key ticket no1 
         	if j < len(ticket_num) :
@@ -301,7 +311,7 @@ if j == 99 and k == 99: # choice sucesses
         	       web.find_element_by_id("ctl00_ContentPlaceHolder1_txtCoupon_TicketNo1").send_keys(from_ticket)
         	       logger1 = logging.getLogger(from_ticket)	       
         	       logger1.info("step5_1 TicketNo1 keys in is sucesses")
-        	       time.sleep(random.randrange(1, 10, 1))
+        	       time.sleep(random.randrange(3, 5, 1))
         	       j = 99
         
         	   except:
@@ -321,7 +331,7 @@ if j == 99 and k == 99: # choice sucesses
         	       web.find_element_by_id("ctl00_ContentPlaceHolder1_txtCoupon_TicketNo5").send_keys(return_ticket)
         	       logger2 = logging.getLogger(return_ticket)
         	       logger2.info("step5_2 TicketNo5 keys in is sucesses")
-        	       time.sleep(random.randrange(1, 10, 1))
+        	       time.sleep(random.randrange(3, 5, 1))
         	       k = 99
         	   except:
                        if k < 99 :

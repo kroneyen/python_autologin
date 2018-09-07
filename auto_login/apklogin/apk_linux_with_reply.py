@@ -16,28 +16,28 @@ from selenium.webdriver.common.by import By
 import random
 import send_mail
 from bs4 import BeautifulSoup
+from selenium.webdriver.common.action_chains import ActionChains
 import re
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
-                    filename='p2p_login_with_reply.log',
+                    filename='apk_login_with_reply.log',
 		    filemode='a')
 
 
 logging.info(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
 
-myusername_list =["XXXXXXXX","XXXXXXXX"] 
-mypassword_list =["XXXXXXXX","XXXXXXXX"]
-uid_list = ["XXXXXXXX","XXXXXXXX","XXXXXX"]   
 
+url="https://apk.tw/forum.php"
+url2="https://apk.tw/home.php?mod=task&do=view&id=7" ##user_task_page of week
+bt_hd_url="https://apk.tw/forum-883" ##BT HD page
+#bt_hd_url="https://apk.tw/forum-883-1.html" ##BT HD page
+#https://apk.tw/thread-884337-1-1.html
+url_credit = 'https://apk.tw/home.php?mod=spacecp&ac=credit'
+reply_history_p1 ='https://apk.tw/home.php?mod=space&'
+reply_history_p2 ='&do=thread&view=me&type=reply&from=space'
 
-url="http://www.p2p101.com"
-url2="http://www.p2p101.com/home.php?mod=task&amp;do=apply&amp;id=3" ##user_task_page
-bt_hd_url="http://www.p2p101.com/forum.php?mod=forumdisplay&fid=920&page=" ##BT HD page
-url_credit = 'http://www.p2p101.com/home.php?mod=spacecp&ac=credit&showcredit=1'
-reply_history_p1 ='http://www.p2p101.com/home.php?mod=space&uid='
-reply_history_p2 ='&do=thread&view=me&type=reply&order=dateline&from=space&page='
 today_week = datetime.date.today().strftime("%w")
 
 #logger = logging.getLogger(bt_hd_url)
@@ -48,6 +48,27 @@ display = Display(visible=0, size=(800, 600))
 display.start()
 #web = webdriver.Chrome()
 #web = webdriver.Chrome('/usr/local/bin/chromedriver') ## for cron path
+
+
+def get_config():
+    import configparser
+    import ast
+
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+    for section_list in config.sections(): ## get  sctions
+        for key in config[section_list] : ## get keys
+            ## get values
+            if section_list =='user':
+               myusername_list = ast.literal_eval(config.get(section_list,key))
+            elif section_list =='pwd':
+               mypassword_list = ast.literal_eval(config.get(section_list,key))
+            elif section_list =='uid':
+               uid_list = ast.literal_eval(config.get(section_list,key))
+
+    return myusername_list , mypassword_list , uid_list
+
+
 
 ###  Reply Format 
 def reply_format(): 
@@ -222,88 +243,67 @@ def get_credit(myusername):
 
 
 ### Login User Page
+## get user & pwd 
+myusername_list , mypassword_list , uid_list = get_config() ## get loging user && pwd 
 
 for num in range(len(myusername_list)):
     myusername=myusername_list[num] 
     mypassword =mypassword_list[num]
-    myreply_history_url = reply_history_p1+ uid_list[num] + reply_history_p2
-    log_file = 'myreply_history_'+myusername+'.log'    
+    #myreply_history_url = reply_history_p1+ uid_list[num] + reply_history_p2
+    #log_file = 'myreply_history_'+myusername+'.log'    
  
     #web = webdriver.Chrome() ## for cron path	
     web = webdriver.Chrome('/usr/local/bin/chromedriver') ## for cron path	
     web.get(url)
-    time.sleep(random.randrange(1, 5, 1))
-    web.find_element_by_id("ls_username").send_keys(myusername)
-    web.find_element_by_id("ls_password").send_keys(mypassword)
-    web.find_element_by_xpath("//button[contains(@class, 'pn vm')]").submit() ## login
-    logger = logging.getLogger(myusername)   
-    logger.info("login botton is success")
-    time.sleep(random.randrange(1, 5, 1))
+    time.sleep(random.randrange(3, 5, 1))
 
-    ### Get User myreply_history lists
-    ### try to open myreply log_file , if is exist 
+    ### hidden form 
+    loginForm  = web.find_element_by_class_name("mousebox")                                                                                                   
+    fromname   = web.find_element_by_css_selector(".mousebox  #ls_username")                                                                                  
+    frompwd   = web.find_element_by_css_selector(".mousebox #ls_password")                                                                                    
+    click_btn =web.find_element_by_xpath("//*[@id='lsform']/div/div/button/em")                                                                               
+    #click_btn =web.find_element_by_xpath("//button[contains(@class, 'pn vm')]")                                                                              
+    ### mouse move to element loging
     try :
-          with open(log_file) as rp:
-               row_data = rp.readlines()
-               all_page_lists_tids = str_split_3(row_data) ### get tid lists from log file
-          rp.close()
-    except : 
-            ## first times data list is empty 
-            all_page_lists_tids  = myreply_history(myusername,myreply_history_url,log_file)  ## from all_page_lists_tids
-    
-    ### check auto_get_link_list avoid get_link result is 0
-    while 1 :  
-             auto_get_link_list = []
-             non_rep_link_list = get_link(bt_hd_url,today_week) ### Get auto_reply_link          
-             chk_link_list , log_file_tids=  chk_reply_tid(non_rep_link_list,all_page_lists_tids)  ## check auto_reply_link avoid is exist in  myreply_history
-             
-             if len(chk_link_list) > 1 :  ### non-repetitive reply link more than the 1
-                for str_link in chk_link_list :
-                   auto_get_link_list.append(url + str_link)  ### full link addr
-                break
-    ###  Auto_Reply
-    log_tids_num = 0 
-    with open(log_file,'a') as chkp:
-        for auto_link_str in auto_get_link_list :
-            auto_reply = reply_format()
-            ## threadlist page change
-            web.get(auto_link_str)
-            time.sleep(random.randrange(1, 5, 1))
-            try : 
-                 web.find_element_by_id("fastpostmessage").clear()
-                 web.find_element_by_id("fastpostmessage").send_keys(auto_reply) ## reply format_str on textarea
-                 time.sleep(random.randrange(1, 5, 1))
-                 WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.ID, "fastpostsubmit"))).submit() ## textarea submit
-                 #print(auto_link_str,auto_reply)
-                 ###write into log files 
-                 chkp.write(log_file_tids[log_tids_num] + '\n')
-                 log_tids_num = log_tids_num +1
-                 logger = logging.getLogger(auto_link_str)
-                 logger.info("reply is successed ,waiting next link !!")
-                 time.sleep(random.randrange(10, 30, 1))                                  
-
-            except :
-                    logger = logging.getLogger(auto_link_str)
-                    logger.info("reply is failed!!")                         
-                    break
-
-    chkp.close()
-    logger = logging.getLogger(myusername)
-    logger.info("reply all done!!") 
-    time.sleep(random.randrange(1, 5, 1))     
-    ###  Login user task 
-    web.get(url2)
-    time.sleep(random.randrange(1, 5, 1))
-
-    ### Got redpackage 
-    try: 
-        link = WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.XPATH, "//img[@alt='apply']")))
-        link.click()
-        logger = logging.getLogger(myusername)		
-        logger.info("get redpackage is successed!!")
+         ActionChains(web).move_to_element(loginForm).send_keys_to_element(fromname,myusername).send_keys_to_element(frompwd,mypassword).click(click_btn).perform()
+         logger = logging.getLogger(myusername)
+         logger.info("login botton is success")
+         time.sleep(random.randrange(5, 10, 1))
+         
+    except :  
+            logger = logging.getLogger(myusername)
+            logger.info("login botton is success")
+            break
+    ### Got signature 
+    try:
+        signature = WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.ID,"my_amupper")))
+        signature.click()
+        logger = logging.getLogger(myusername)
+        logger.info("signature is successed!!")
     except:
           logger = logging.getLogger(myusername)
-          logger.info("link is not exist!!")
+          logger.info("signature is not exist!!")
+
+    time.sleep(random.randrange(3, 10, 1)) 
+
+    ### auto reply not yat 
+    ###
+    ###
+
+    ### Got task of 7 days
+    web.get(url2)
+    try:
+         
+        link = WebDriverWait(web, 15).until(EC.element_to_be_clickable((By.XPATH, "//img[@alt='立即申請']")))
+        link.click()
+        logger = logging.getLogger(myusername)		
+        logger.info("get task of 7 Day is successed!!")
+    except:
+          logger = logging.getLogger(myusername)
+          logger.info("task task of 7 Day is not exist!!")
+
+    time.sleep(random.randrange(1, 5, 1)) 
+
 
     ### Get Credit info && close web 
     get_credit(myusername)
@@ -330,15 +330,14 @@ if today_week == '1' :
      ### read for log last 47 line of mail body
      body = '' 
      try:
-             with open('p2p_login_with_reply.log') as fp:
+             with open('apk_login_with_reply.log') as fp:
               data = fp.readlines()
-              for i in data[-47:]:
+              for i in data[-15:]:
                body  = body + i
      
      finally:
          fp.close()
      
      
-     send_mail.send_email('p2plogin auto loging',body)
-
+     send_mail.send_email('apklogin auto loging',body)
 
