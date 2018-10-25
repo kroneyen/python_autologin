@@ -21,7 +21,7 @@ import re
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
-                    filename='p2p_login_with_reply_drama.log',
+                    filename='p2p_login_with_reply_software.log',
 		    filemode='a')
 
 
@@ -30,7 +30,7 @@ logging.info(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
 
 url="http://www.p2p101.com"
 url2="http://www.p2p101.com/home.php?mod=task&amp;do=apply&amp;id=3" ##user_task_page
-bt_drama_url="http://www.p2p101.com/forum.php?mod=forumdisplay&fid=405&page=" ##BT drama page PS:Credit > 15
+bt_software_url="http://www.p2p101.com/forum.php?mod=forumdisplay&fid=33&page=" ##BT software page PS:Credit > 15
 url_credit = 'http://www.p2p101.com/home.php?mod=spacecp&ac=credit&showcredit=1'
 reply_history_p1 ='http://www.p2p101.com/home.php?mod=space&uid='
 reply_history_p2 ='&do=thread&view=me&type=reply&order=dateline&from=space&page='
@@ -59,7 +59,8 @@ def get_config():
             elif section_list =='uid':
                uid_list = ast.literal_eval(config.get(section_list,key))
 
-    return myusername_list[1:] , mypassword_list[1:] , uid_list[1:] ## return for drama
+    #return myusername_list[1:] , mypassword_list[1:] , uid_list[1:] ## return for software
+     return myusername_list , mypassword_list , uid_list  ## return for all user
 
 
 
@@ -67,19 +68,22 @@ def get_config():
 def reply_format():
     reply_str_all =[]
     today = time.strftime('%Y/%m/%d' , time.localtime())
-    #download_speed = str(random.randrange(0, 1000,1))+'kb/s'
-    download_speed = str(0)+'kb/s'
+    download_speed = str(random.randrange(0, 1000,1))+'kb/s'
+    #download_speed = str(0)+'kb/s'
 
     feedback =[
-    '蠻想看的 無權限下載',
-    '慘念~~權限不足.....!!!',
-    '無法享受 沒權限看!!',
-    '想看阿.....想看+++++'
+    '正在學習電腦中 看起來很不錯謝謝~大大~分享',
+    'thank tou very much!!!!!',
+    '正好需要用到… 感謝分享!!!!',
+    '感謝版主分享 ,學習應用!!! ',
+    '下載研究看看 ,正在學習中, 感謝分享!! ',
+    '很實用的軟體，謝謝樓主分享!!',
+    '終於找到版本了~~ 感謝大大提供這個資訊供大家分享。'
     ]
 
     reply_format = [
     '下載日期 : ' ,
-    '下載方式： 無' ,
+    '下載方式： BT' ,
     '下載速度 : ' ,
     '解壓方式： 無 ' ,
     '問題反饋： 無 ' ,
@@ -118,16 +122,16 @@ def reply_format():
 
 
 ###  Get BT HD page   
-def get_link(bt_drama_url,today_week):
-    page_num = random.randrange(10,35,1)
-    bt_drama_url=bt_drama_url+str(page_num)
+def get_link(bt_software_url,today_week):
+    page_num = random.randrange(1,35,1)
+    bt_software_url=bt_software_url+str(page_num)
     get_link_list= []
 
-    ### Login BT HD page 
-    web.get(bt_drama_url) ## login BT HD page
+    ### Login BT software page 
+    web.get(bt_software_url) ## login BT software page
     time.sleep(random.randrange(1, 2, 1))
-    logger = logging.getLogger(bt_drama_url)
-    logger.info("BT drama page !!")
+    logger = logging.getLogger(bt_software_url)
+    logger.info("BT software page !!")
     soup = BeautifulSoup(web.page_source , "html.parser")
     ### Get BR HD link
     threadlist = soup.find(id='threadlisttableid')  ## get forum threadlist ID
@@ -139,9 +143,9 @@ def get_link(bt_drama_url,today_week):
     #today_week = datetime.date.today().strftime("%w")
 
     if int(today_week) > 5 :
-            ran_rows = random.randrange(5,10,1) ## get non-repetitive random 2~5 rows from get_link_list
+            ran_rows = random.randrange(2,5,1) ## get non-repetitive random 2~5 rows from get_link_list
     else :
-            ran_rows = random.randrange(2,4,1) ## get non-repetitive random 2~5 rows from get_link_list
+            ran_rows = random.randrange(1,3,1) ## get non-repetitive random 2~5 rows from get_link_list
 
     non_rep_link_list = random.sample(get_link_list, k=ran_rows)
     return non_rep_link_list
@@ -267,10 +271,10 @@ for num in range(len(myusername_list)):
     ### check auto_get_link_list avoid get_link result is 0
     while 1 :  
              auto_get_link_list = []
-             non_rep_link_list = get_link(bt_drama_url,today_week) ### Get auto_reply_link          
+             non_rep_link_list = get_link(bt_software_url,today_week) ### Get auto_reply_link          
              chk_link_list , log_file_tids=  chk_reply_tid(non_rep_link_list,all_page_lists_tids)  ## check auto_reply_link avoid is exist in  myreply_history
              
-             if len(chk_link_list) > 1 :  ### non-repetitive reply link more than the 1
+             if len(chk_link_list) > 0 :  ### non-repetitive reply link more than the 1
                 for str_link in chk_link_list :
                    auto_get_link_list.append(url + str_link)  ### full link addr
                 break
@@ -289,7 +293,7 @@ for num in range(len(myusername_list)):
                  WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.ID, "fastpostsubmit"))).submit() ## textarea submit
                  #print(auto_link_str,auto_reply)
                  ###write into log files 
-                 chkp.write(log_file_tids[log_tids_num] + '\n')
+                 chkp.write(log_file_tids[log_tids_num] + '\n') ## write tids to myhistory file
                  log_tids_num = log_tids_num +1
                  logger = logging.getLogger(auto_link_str)
                  logger.info("reply is successed ,waiting next link !!")
@@ -334,24 +338,22 @@ time.sleep(random.randrange(1, 10, 1))
 logging.info("user all done!!")
 display.stop()
 
-
 ### Send Email on monday 
 
 #today_week = datetime.date.today().strftime("%w")
 
 #if today_week == '1' :
      ### read for log last 47 line of mail body
-body = '' 
+body = ''     
 try:
-      with open('p2p_login_with_reply_drama.log') as fp:
+      with open('p2p_login_with_reply_software.log') as fp:
            data = fp.readlines()
            for i in data[-47:]:
              body  = body + i
-     
+
 finally:
          fp.close()
-     
-     
-send_mail.send_email('p2plogin_drama auto loging',body)
 
+
+send_mail.send_email('p2plogin_software auto loging',body)
 
