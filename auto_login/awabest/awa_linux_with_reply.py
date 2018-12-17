@@ -32,11 +32,19 @@ logging.info(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
 url="https://awabest.com/forum.php"
 #url2="https://awabest.com/plugin.php?id=awa_signin" ##user_singnin of week
 #url3='https://awabest.com/awa_signin-sign.html'
+#bt_hd_url="https://apk.tw/forum-883" ##BT HD page
+#bt_hd_url="https://apk.tw/forum-883-1.html" ##BT HD page
+#https://apk.tw/thread-884337-1-1.html
+#url_credit = 'https://apk.tw/home.php?mod=spacecp&ac=credit'
+## id:dcsignin_tips
 url_credit = 'https://awabest.com/home.php?mod=spacecp&ac=credit&showcredit=1'
-#reply_history_p1 ='https://awabest.com/home.php?mod=space&'
-#reply_history_p2 ='&do=thread&view=me&type=reply&from=space'
+reply_history_p1 ='https://apk.tw/home.php?mod=space&'
+reply_history_p2 ='&do=thread&view=me&type=reply&from=space'
 
 today_week = datetime.date.today().strftime("%w")
+
+#logger = logging.getLogger(bt_hd_url)
+#logger.info("BT HD page !!")
 
 ### Usage Virtual Dispaly
 display = Display(visible=0, size=(800, 600))
@@ -239,6 +247,7 @@ def get_credit(myusername):
 
 ### Get emot id 
 def get_emot_id(web):
+    ###find(name,attrs,recursive,text,**wargs)
     emotid_list = []
     soup = BeautifulSoup(web.page_source, "html.parser")
     dcsignin2_list = soup.find_all('div', attrs={'class': re.compile('dcsignin2')})  ## find out signin icon
@@ -247,7 +256,7 @@ def get_emot_id(web):
         emotid_list.append(img_list.get('id'))  ##record  emotid id values
     
     ran_rows = random.randrange(0, len(emotid_list), 1)  ## get random id
-    return emotid_list(ran_rows)
+    return emotid_list[ran_rows]
 
 ### Login User Page
 ## get user & pwd 
@@ -327,7 +336,7 @@ if today_week == '1' :
      try:
              with open('awa_login_with_reply.log') as fp:
               data = fp.readlines()
-              for i in data[-15:]:
+              for i in data[-22:]:
                body  = body + i
      
      finally:
