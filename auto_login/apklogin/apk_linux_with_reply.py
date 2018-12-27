@@ -337,9 +337,10 @@ for num in range(len(myusername_list)):
             fs_btn =web.find_element_by_id('fastpostsubmit')
             time.sleep(random.randrange(3, 5, 1))
             #logger.info(" reply fastpostmessage is success!!")
+            """
             ActionChains(web).move_to_element(fs_btn).perform() ### mousemove btn
             time.sleep(random.randrange(2, 5, 1))           
-
+            
             try :
                  ### display checkpost 
                  soup = BeautifulSoup(web.page_source , "html.parser")
@@ -352,6 +353,10 @@ for num in range(len(myusername_list)):
                  time.sleep(random.randrange(2, 5, 1))
                  ### post answer  to  checkpost
                  ActionChains(web).move_to_element(ans_form).send_keys_to_element(ans_form,ans).click(fs_btn).perform()
+            """
+            try :
+                 ActionChains(web).click(fs_btn).perform()
+                 time.sleep(random.randrange(3, 5, 1))
                  ### write tid to log_file 
                  chkp.write(log_file_tids[log_tids_num] + '\n')
                  log_tids_num = log_tids_num +1 ##@ trun tid next 
