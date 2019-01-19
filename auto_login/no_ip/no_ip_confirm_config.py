@@ -55,18 +55,6 @@ def get_config():
               
     return myusername_list , mypassword_list ,domain_list ## return for drama
 
-def get_redis_data():
-    import redis
-    pool = redis.ConnectionPool(host='localhost', port=6379, decode_responses=True)
-    r = redis.StrictRedis(connection_pool=pool)
-
-    myusername_list = r.lrange('no_ip_myusername_list','0','-1')
-    mypassword_list = r.lrange('no_ip_mypassword_list','0','-1')
-    domain_list = r.lrange('no_ip_domain_list','0','-1')
-
-    return myusername_list , mypassword_list ,domain_list
-
-
 
 def get_option_num(soup,tb_id,_domain) :
     table_id = soup.find('table',{'class':re.compile(tb_id)})  ## find table_id                                   
@@ -88,8 +76,7 @@ def get_option_num(soup,tb_id,_domain) :
 
 
 ## get user & pwd 
-#myusername_list , mypassword_list , domain_list = get_config() ## get loging user && pwd 
-myusername_list , mypassword_list , domain_list = get_redis_data() ## get loging user && pwd 
+myusername_list , mypassword_list , domain_list = get_config() ## get loging user && pwd 
 
     
 ### login for from 

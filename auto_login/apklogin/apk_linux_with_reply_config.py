@@ -19,7 +19,6 @@ from bs4 import BeautifulSoup
 from selenium.webdriver.common.action_chains import ActionChains
 import re
 import traceback
-import redis
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
@@ -38,11 +37,8 @@ bt_hd_url="https://apk.tw/forum-883-" ##BT HD page
 #bt_hd_url="https://apk.tw/forum-883-1.html" ##BT HD page
 #https://apk.tw/thread-884337-1-1.html
 url_credit = 'https://apk.tw/home.php?mod=spacecp&ac=credit'
-reply_history_p1 ='https://apk.tw/home.php?mod=space&uid='
-reply_history_p2 ='&do=thread&view=me&type=reply&order=dateline&from=space&page='
-##https://apk.tw/home.php?mod=space&uid=2898458&do=thread&view=me&type=reply&order=dateline&from=space&page=1
-## first time = from=space
-#reply_history_p3 ='order=dateline&from=space1&page='
+reply_history_p1 ='https://apk.tw/home.php?mod=space&'
+reply_history_p2 ='&do=thread&view=me&type=reply&from=space'
 
 today_week = datetime.date.today().strftime("%w")
 
@@ -54,10 +50,6 @@ display = Display(visible=0, size=(800, 600))
 display.start()
 #web = webdriver.Chrome()
 #web = webdriver.Chrome('/usr/local/bin/chromedriver') ## for cron path
-
-
-pool = redis.ConnectionPool(host='localhost', port=6379, decode_responses=True)
-r = redis.StrictRedis(connection_pool=pool)
 
 
 def get_config():
@@ -77,18 +69,6 @@ def get_config():
                uid_list = ast.literal_eval(config.get(section_list,key))
 
     return myusername_list , mypassword_list , uid_list
-
-def get_redis_data():
-
-    #docker exec -it my-redis redis-cli LRANGE myreply_history_j20180702 0 -1
-    myusername_list = r.lrange('apk_myusername_list','0','-1')
-    mypassword_list = r.lrange('apk_mypassword_list','0','-1')
-    uid_list = r.lrange('apk_uid_list','0','-1')
-
-    return myusername_list , mypassword_list , uid_list
-
-
-
 
 
 
@@ -206,12 +186,12 @@ def get_link(bt_hd_url,today_week):
     non_rep_link_list = random.sample(get_link_list, k=ran_rows)
     return non_rep_link_list
     
-def myreply_history(myusername,myreply_history_url,log_file_key):
+def myreply_history(myusername,myreply_history_url,log_file):
     
     myreply_history_list = []
     time.sleep(random.randrange(1, 2, 1))
     logger = logging.getLogger(myusername)
-    logger.info("login first time myreply history page !!")
+    logger.info("login myreply history page !!")
     ### Get Myreply_history all_page lists
     page_num =1
     while 1 :
@@ -219,7 +199,7 @@ def myreply_history(myusername,myreply_history_url,log_file_key):
                    web.get(myreply_history_url+str(page_num))
                    soup_2 = BeautifulSoup(web.page_source , "html.parser") 
                    form_table = soup_2.find(id='delform')
-                   for link_2 in  form_table.find_all('a',{'title':re.compile('新窗口打開')}):  ##exp thread-547940-1-1.html
+                   for link_2 in  form_table.find_all('a',{'title':re.compile('新窗口打開')}):
                        myreply_history_list.append(link_2.get('href'))
                    ### next myreply page 
                    WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, "nxt")))
@@ -228,7 +208,6 @@ def myreply_history(myusername,myreply_history_url,log_file_key):
              except :
                     break
     ### first time lists write into log file
-    """
     try :
          all_page_myreply_tids = str_split_2(myreply_history_list) 
          with open(log_file,'w') as fp :
@@ -238,22 +217,7 @@ def myreply_history(myusername,myreply_history_url,log_file_key):
              fp.close()
 
     return all_page_myreply_tids
-    """
-    try :## get  my history tid list from redis
-         all_page_myreply_tids = str_split_2(myreply_history_list)
-         for sstr in all_page_myreply_tids :
-             r.rpush(str(log_file_key),str(sstr)) ## first time redis insert key(log_file) values(tid=xxxxx)
-         logger = logging.getLogger(myusername)
-         logger.info("first time get myreply history page all done !!")
 
-
-    except :
-             logger = logging.getLogger(myusername)
-             logger.info('my_history first time is failed !!!')
-            # break
-    
-    return all_page_myreply_tids
-    
 
 ### Split HD tid
 ### EXP: thread-894449-1-1.html
@@ -319,16 +283,14 @@ def get_ans(sttr):
 
 ### Login User Page
 ## get user & pwd 
-#myusername_list , mypassword_list , uid_list = get_config() ## get loging user && pwd 
-myusername_list , mypassword_list , uid_list = get_redis_data()
+myusername_list , mypassword_list , uid_list = get_config() ## get loging user && pwd 
 
 for num in range(len(myusername_list)):
     myusername=myusername_list[num] 
     mypassword =mypassword_list[num]
     myreply_history_url = reply_history_p1+ uid_list[num] + reply_history_p2
-    #log_file = 'myreply_history_'+myusername+'.log'    
-    log_file_key = 'apk_myreply_history_'+myusername
-
+    log_file = 'myreply_history_'+myusername+'.log'    
+ 
     #web = webdriver.Chrome() ## for cron path	
     web = webdriver.Chrome('/usr/local/bin/chromedriver') ## for cron path	
     web.get(url)
@@ -366,7 +328,6 @@ for num in range(len(myusername_list)):
 
 
     ### try to open myreply log_file , if is exist 
-    """
     try :
           with open(log_file) as rp:
                row_data = rp.readlines()
@@ -375,15 +336,6 @@ for num in range(len(myusername_list)):
     except :
             ## first times data list is empty 
             all_page_lists_tids  = myreply_history(myusername,myreply_history_url,log_file)  ## from all_page_lists_tids
-    """
-        ### get my history log all tid
-    
-    if r.llen(log_file_key) > 0 : ### redis key len 
-             all_page_lists_tids = r.lrange(log_file_key,'0','-1')
-
-    else :
-            ## first times data list is empty 
-            all_page_lists_tids  = myreply_history(myusername,myreply_history_url,log_file_key)  ## from all_page_lists_tids
 
     ### check auto_get_link_list avoid get_link result is 0
     while 1 :
@@ -397,8 +349,8 @@ for num in range(len(myusername_list)):
                 break
     ###  Auto_Reply   
     log_tids_num = 0
-    #with open(log_file,'a') as chkp:
-    for auto_link_str in auto_get_link_list :
+    with open(log_file,'a') as chkp:
+        for auto_link_str in auto_get_link_list :
             #auto_reply = reply_format() ##change to simple_reply
             auto_reply = simple_reply_format()
             ## threadlist page change
@@ -432,8 +384,7 @@ for num in range(len(myusername_list)):
                  ActionChains(web).click(fs_btn).perform()
                  time.sleep(random.randrange(3, 5, 1))
                  ### write tid to log_file 
-                 #chkp.write(log_file_tids[log_tids_num] + '\n')
-                 r.rpush(str(log_file_key),str(log_file_tids[log_tids_num]))
+                 chkp.write(log_file_tids[log_tids_num] + '\n')
                  log_tids_num = log_tids_num +1 ##@ trun tid next 
                  logger = logging.getLogger(auto_link_str)
                  logger.info("reply is successed ,waiting next link !!")
@@ -444,7 +395,7 @@ for num in range(len(myusername_list)):
                     logger.info("reply is failed!!")
                     break
 
-    #chkp.close()
+    chkp.close()
     logger = logging.getLogger(myusername)
     logger.info("reply all done!!")
     time.sleep(random.randrange(1, 5, 1))

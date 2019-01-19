@@ -70,20 +70,6 @@ def get_config():
 
     return myusername_list , mypassword_list , ticket_num , seat_list
 
-
-def get_redis_data():
-    import redis
-    pool = redis.ConnectionPool(host='localhost', port=6379, decode_responses=True)
-    r = redis.StrictRedis(connection_pool=pool)
-
-    myusername_list = r.lrange('kingbus_myusername_list','0','-1')
-    mypassword_list = r.lrange('kingbus_mypassword_list','0','-1')
-    ticket_num = r.lrange('kingbus_ticket_num','0','-1')
-    seat_list = r.lrange('kingbus_seat_list','0','-1')
-
-    return myusername_list , mypassword_list , ticket_num , seat_list
-
-
 def get_option_num(soup,tb_id,time) : 
 ###format '06:00     '
   table_id = soup.find('table',{'id':re.compile(tb_id)})  ## find table_id
@@ -117,8 +103,7 @@ display.start()
 
 ## step 1
 ## get user & pwd
-#myusername_list , mypassword_list , ticket_num  , seat_list = get_config() ## get loging user && pwd
-myusername_list , mypassword_list , ticket_num  , seat_list = get_redis_data() ## get loging user && pwd form redis
+myusername_list , mypassword_list , ticket_num  , seat_list = get_config() ## get loging user && pwd
 
 ## mutiple user booking
 for i in range(len(myusername_list)):

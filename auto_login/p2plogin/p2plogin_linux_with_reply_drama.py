@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 ## chromedrive 2.32
+## 20190110  add reply method 
 
 from selenium import webdriver
 #from selenium.webdriver.common.keys import Keys
@@ -17,6 +18,7 @@ import random
 import send_mail
 from bs4 import BeautifulSoup
 import re
+import redis
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
@@ -43,6 +45,13 @@ display.start()
 #web = webdriver.Chrome()
 #web = webdriver.Chrome('/usr/local/bin/chromedriver') ## for cron path
 
+### create redis connection pool 
+
+pool = redis.ConnectionPool(host='localhost', port=6379, decode_responses=True)
+r = redis.StrictRedis(connection_pool=pool)
+
+
+
 def get_config():
     import configparser
     import ast
@@ -59,47 +68,73 @@ def get_config():
             elif section_list =='uid':
                uid_list = ast.literal_eval(config.get(section_list,key))
 
-    return myusername_list[1:] , mypassword_list[1:] , uid_list[1:] ## return for drama
+    #return myusername_list[1:] , mypassword_list[1:] , uid_list[1:] ## return for drama
+    return myusername_list , mypassword_list , uid_list ##  return for all user
 
+def get_redis_data():
+
+    #docker exec -it my-redis redis-cli LRANGE myreply_history_j20180702 0 -1
+    myusername_list = r.lrange('p2p_myusername_list','0','-1')
+    mypassword_list = r.lrange('p2p_mypassword_list','0','-1')
+    uid_list = r.lrange('p2p_uid_list','0','-1')
+
+    return myusername_list , mypassword_list , uid_list
 
 
 
 def reply_format():
     reply_str_all =[]
     today = time.strftime('%Y/%m/%d' , time.localtime())
-    #download_speed = str(random.randrange(0, 1000,1))+'kb/s'
-    download_speed = str(0)+'kb/s'
+    download_speed = str(random.randrange(0, 1000,1))+'kb/s'
+    #download_speed = str(0)+'kb/s'
 
     feedback =[
     '蠻想看的 無權限下載',
     '慘念~~權限不足.....!!!',
     '無法享受 沒權限看!!',
-    '想看阿.....想看+++++'
+    '想看阿.....想看+++++',
+    '感恩~感恩！給大大強力推推囉！感謝大大分享！',
+    '感謝版主分享~下載中',
+    '看起來好似不錯感謝大大的分享!',
+    '我很喜歡的劇情、精彩的片段 , 謝謝分享'
     ]
 
     reply_format = [
     '下載日期 : ' ,
-    '下載方式： 無' ,
+    '下載方式： ' ,
     '下載速度 : ' ,
     '解壓方式： 無 ' ,
     '問題反饋： 無 ' ,
     '觀看感受 : ' ]
 
+    f_r_num=random.randrange(1, len(feedback),1 )
     for i in range(len(reply_format)) :
         if i ==0 :
          #print(reply_format[i],today)
          reply = reply_format[i]
          reply_str = reply + today
          reply_str_all.append(reply_str)
+        elif i == 1 :
+         #print(reply_format[i],download_speed) 
+         reply = reply_format[i]
+         if f_r_num < 4 :
+           download_method ='無'
+         else :
+           download_method ='BT'
+         reply_str = reply + download_method
+         reply_str_all.append(reply_str)
         elif i == 2 :
          #print(reply_format[i],download_speed) 
          reply = reply_format[i]
+         if f_r_num < 4 :
+           download_speed ='0'
          reply_str = reply + download_speed
          reply_str_all.append(reply_str)
         elif i ==  5:
          #print(reply_format[i],feedback[random.randrange(1, len(feedback),1 )])
          reply = reply_format[i]
-         reply_str = reply + feedback[random.randrange(1, len(feedback),1 )]
+         #reply_str = reply + feedback[random.randrange(1, len(feedback),1 )]
+         reply_str = reply + feedback[f_r_num]
          reply_str_all.append(reply_str)
         else :
          #print(reply_format[i])
@@ -168,6 +203,7 @@ def myreply_history(myusername,myreply_history_url,log_file):
              except :
                     break
     ### first time lists write into log file
+    """
     try :
          all_page_myreply_tids = str_split_2(myreply_history_list) 
          with open(log_file,'w') as fp :
@@ -177,7 +213,21 @@ def myreply_history(myusername,myreply_history_url,log_file):
              fp.close()
 
     return all_page_myreply_tids
+    """
+    try :## get  my history tid list from redis
+         all_page_myreply_tids = str_split_2(myreply_history_list)
+         for sstr in  all_page_myreply_tids:
+             r.rpush(str(log_file_key),str(sstr)) ## first time redis insert key(log_file) values(tid=xxxxx)
+         logger = logging.getLogger(myusername)
+         logger.info("first time get myreply history page all done !!")
 
+
+    except :
+             logger = logging.getLogger(myusername)
+             logger.info('my_history first time is failed !!!')
+            # break
+
+    return all_page_myreply_tids
 
 ### Split HD tid
 def str_split_1(sttr_list) :
@@ -234,13 +284,15 @@ def get_credit(myusername):
 
 
 ### Login User Page
-myusername_list , mypassword_list , uid_list = get_config() ## get loging user && pwd
+#myusername_list , mypassword_list , uid_list = get_config() ## get loging user && pwd
+myusername_list , mypassword_list , uid_list = get_redis_data() ## get redis loging user && pwd 
 
 for num in range(len(myusername_list)):
     myusername=myusername_list[num] 
     mypassword =mypassword_list[num]
     myreply_history_url = reply_history_p1+ uid_list[num] + reply_history_p2
-    log_file = 'myreply_history_'+myusername+'.log'    
+    #log_file = 'myreply_history_'+myusername+'.log'    
+    log_file_key = 'myreply_history_'+myusername    
  
     #web = webdriver.Chrome() ## for cron path	
     web = webdriver.Chrome('/usr/local/bin/chromedriver') ## for cron path	
@@ -255,6 +307,7 @@ for num in range(len(myusername_list)):
 
     ### Get User myreply_history lists
     ### try to open myreply log_file , if is exist 
+    """
     try :
           with open(log_file) as rp:
                row_data = rp.readlines()
@@ -263,6 +316,14 @@ for num in range(len(myusername_list)):
     except : 
             ## first times data list is empty 
             all_page_lists_tids  = myreply_history(myusername,myreply_history_url,log_file)  ## from all_page_lists_tids
+    """
+    try :
+         if r.llen(log_file_key) > 0 : ### redis key len 
+            all_page_lists_tids = r.lrange(log_file_key,'0','-1')
+
+    except :
+            ## first times data list is empty 
+            all_page_lists_tids  = myreply_history(myusername,myreply_history_url,log_file_key)  ## from all_page_lists_tids
     
     ### check auto_get_link_list avoid get_link result is 0
     while 1 :  
@@ -276,8 +337,8 @@ for num in range(len(myusername_list)):
                 break
     ###  Auto_Reply 
     log_tids_num = 0 
-    with open(log_file,'a') as chkp:
-        for auto_link_str in auto_get_link_list :
+    #with open(log_file,'a') as chkp:
+    for auto_link_str in auto_get_link_list :
             auto_reply = reply_format()
             ## threadlist page change
             web.get(auto_link_str)
@@ -289,7 +350,9 @@ for num in range(len(myusername_list)):
                  WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.ID, "fastpostsubmit"))).submit() ## textarea submit
                  #print(auto_link_str,auto_reply)
                  ###write into log files 
-                 chkp.write(log_file_tids[log_tids_num] + '\n')
+                 # chkp.write(log_file_tids[log_tids_num] + '\n')
+                 ### write into redis key 
+                 r.rpush(str(log_file_key),str(log_file_tids[log_tids_num]))
                  log_tids_num = log_tids_num +1
                  logger = logging.getLogger(auto_link_str)
                  logger.info("reply is successed ,waiting next link !!")
@@ -300,7 +363,7 @@ for num in range(len(myusername_list)):
                     logger.info("reply is failed!!")                         
                     break
 
-    chkp.close()
+    #chkp.close()
     logger = logging.getLogger(myusername)
     logger.info("reply all done!!") 
     time.sleep(random.randrange(1, 5, 1))     

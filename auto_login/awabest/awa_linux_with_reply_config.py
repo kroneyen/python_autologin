@@ -18,7 +18,6 @@ import send_mail
 from bs4 import BeautifulSoup
 from selenium.webdriver.common.action_chains import ActionChains
 import re
-import redis
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
@@ -53,10 +52,6 @@ display.start()
 #web = webdriver.Chrome()
 #web = webdriver.Chrome('/usr/local/bin/chromedriver') ## for cron path
 
-pool = redis.ConnectionPool(host='localhost', port=6379, decode_responses=True)
-r = redis.StrictRedis(connection_pool=pool)
-
-
 
 def get_config():
     import configparser
@@ -75,17 +70,6 @@ def get_config():
                uid_list = ast.literal_eval(config.get(section_list,key))
 
     return myusername_list , mypassword_list , uid_list
-
-def get_redis_data():
-
-    #docker exec -it my-redis redis-cli LRANGE myreply_history_j20180702 0 -1
-    myusername_list = r.lrange('awa_myusername_list','0','-1')
-    mypassword_list = r.lrange('awa_mypassword_list','0','-1')
-    uid_list = r.lrange('awa_uid_list','0','-1')
-
-    return myusername_list , mypassword_list , uid_list
-
-
 
 
 
@@ -107,11 +91,7 @@ def reply_format():
     '謝謝分享，終於等到好畫值，讚啦',
     '感恩超級期待這片!收藏了...感謝版主',
     '自己下載檔案影片 不小心刪除 , 重新下載一次 , 感謝版主分享',
-    '看過預告片,劇情好像蠻不錯.....感謝分享!!!',
-    '評價很不錯,絕無冷場,很緊湊的一部好戲,感謝分享!',
-    '終於等到好的字幕，假日可以好好欣賞，謝謝大大的分享。',
-    '畫質還不錯,感謝大大的分享.',
-    '我很喜歡的劇情、精彩的片段 , 謝謝分享']
+    '看過預告片,劇情好像蠻不錯.....感謝分享!!!']
         
     reply_format = [ 
     '下載日期 : ' ,
@@ -280,8 +260,7 @@ def get_emot_id(web):
 
 ### Login User Page
 ## get user & pwd 
-#myusername_list , mypassword_list , uid_list = get_config() ## get loging user && pwd 
-myusername_list , mypassword_list , uid_list = get_redis_data() ## get loging user && pwd 
+myusername_list , mypassword_list , uid_list = get_config() ## get loging user && pwd 
 
 for num in range(len(myusername_list)):
     myusername=myusername_list[num] 

@@ -7,15 +7,25 @@ def send_email(subject, body):
     import smtplib
     from email.mime.text import MIMEText
     from email.mime.multipart import MIMEMultipart
-    import configparser
-    import ast
-
+    #import configparser
+    #import ast
+    import redis
+    """
     config = configparser.ConfigParser()
     config.read('config.ini')
     ## get values from config mail section 
     m_from = config.get('mail','m_from')
     m_to = ast.literal_eval(config.get('mail','m_to'))
     m_pwd = config.get('mail','m_pwd')
+    """
+    ### redis data
+    ### parameter redis.StrictRedis(host='localhost', port=6379, db=0, password=None, socket_timeout=None, connection_pool=None, charset='utf-8', errors='strict', decode_responses=False, uni    x_socket_path=None)
+    pool = redis.ConnectionPool(host='localhost', port=6379, decode_responses=True)
+    r = redis.Redis(connection_pool=pool)
+
+    m_from = r.hget('mail','m_from')
+    m_to = r.hget('mail','m_to')
+    m_pwd = r.hget('mail','m_pwd')
 
     FROM = m_from 
     TO = m_to  

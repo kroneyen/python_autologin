@@ -4,7 +4,7 @@
 ## chromedrive 2.32
 
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
+#from selenium.webdriver.common.keys import Keys
 import time
 import datetime
 from pyvirtualdisplay import Display #nodisplay on chrome
@@ -16,47 +16,32 @@ from selenium.webdriver.common.by import By
 import random
 import send_mail
 from bs4 import BeautifulSoup
-from selenium.webdriver.common.action_chains import ActionChains
 import re
-import redis
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
-                    filename='awa_login_with_reply.log',
+                    filename='p2p_login_with_reply_software.log',
 		    filemode='a')
 
 
 logging.info(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
 
 
-url="https://awabest.com/forum.php"
-#url2="https://awabest.com/plugin.php?id=awa_signin" ##user_singnin of week
-#url3='https://awabest.com/awa_signin-sign.html'
-#bt_hd_url="https://apk.tw/forum-883" ##BT HD page
-#bt_hd_url="https://apk.tw/forum-883-1.html" ##BT HD page
-#https://apk.tw/thread-884337-1-1.html
-#url_credit = 'https://apk.tw/home.php?mod=spacecp&ac=credit'
-## id:dcsignin_tips
-url_credit = 'https://awabest.com/home.php?mod=spacecp&ac=credit&showcredit=1'
-reply_history_p1 ='https://apk.tw/home.php?mod=space&'
-reply_history_p2 ='&do=thread&view=me&type=reply&from=space'
-
+url="http://www.p2p101.com"
+url2="http://www.p2p101.com/home.php?mod=task&amp;do=apply&amp;id=3" ##user_task_page
+bt_software_url="http://www.p2p101.com/forum.php?mod=forumdisplay&fid=33&page=" ##BT software page PS:Credit > 15
+url_credit = 'http://www.p2p101.com/home.php?mod=spacecp&ac=credit&showcredit=1'
+reply_history_p1 ='http://www.p2p101.com/home.php?mod=space&uid='
+reply_history_p2 ='&do=thread&view=me&type=reply&order=dateline&from=space&page='
 today_week = datetime.date.today().strftime("%w")
 
-#logger = logging.getLogger(bt_hd_url)
-#logger.info("BT HD page !!")
 
 ### Usage Virtual Dispaly
 display = Display(visible=0, size=(800, 600))
 display.start()
 #web = webdriver.Chrome()
 #web = webdriver.Chrome('/usr/local/bin/chromedriver') ## for cron path
-
-pool = redis.ConnectionPool(host='localhost', port=6379, decode_responses=True)
-r = redis.StrictRedis(connection_pool=pool)
-
-
 
 def get_config():
     import configparser
@@ -74,46 +59,29 @@ def get_config():
             elif section_list =='uid':
                uid_list = ast.literal_eval(config.get(section_list,key))
 
-    return myusername_list , mypassword_list , uid_list
-
-def get_redis_data():
-
-    #docker exec -it my-redis redis-cli LRANGE myreply_history_j20180702 0 -1
-    myusername_list = r.lrange('awa_myusername_list','0','-1')
-    mypassword_list = r.lrange('awa_mypassword_list','0','-1')
-    uid_list = r.lrange('awa_uid_list','0','-1')
-
-    return myusername_list , mypassword_list , uid_list
+    #return myusername_list[1:] , mypassword_list[1:] , uid_list[1:] ## return lists 1 after
+    return myusername_list , mypassword_list , uid_list  ## return for all user
 
 
 
 
-
-###  Reply Format 
-def reply_format(): 
+def reply_format():
     reply_str_all =[]
     today = time.strftime('%Y/%m/%d' , time.localtime())
-    download_speed = str(random.randrange(300, 1000,1))+'kb/s'
-    
+    download_speed = str(random.randrange(0, 1000,1))+'kb/s'
+    #download_speed = str(0)+'kb/s'
+
     feedback =[
-    '非常推薦~在電影院看的~非常刺激',
-    '純推~在電影院看的~非常好看',
-    '感覺很刺激~感謝版大分享',
-    '感謝版主分享~下載去',
-    '感恩~感恩！給大大強力推推囉！感謝大大分享！',
-    '萬般期待終於等到 感謝版主分享',
-    '感謝版主分享~下載中',
-    '看起來好似不錯感謝大大的分享!',
-    '謝謝分享，終於等到好畫值，讚啦',
-    '感恩超級期待這片!收藏了...感謝版主',
-    '自己下載檔案影片 不小心刪除 , 重新下載一次 , 感謝版主分享',
-    '看過預告片,劇情好像蠻不錯.....感謝分享!!!',
-    '評價很不錯,絕無冷場,很緊湊的一部好戲,感謝分享!',
-    '終於等到好的字幕，假日可以好好欣賞，謝謝大大的分享。',
-    '畫質還不錯,感謝大大的分享.',
-    '我很喜歡的劇情、精彩的片段 , 謝謝分享']
-        
-    reply_format = [ 
+    '正在學習電腦中 看起來很不錯謝謝~大大~分享',
+    'thanks for your share!!!!!',
+    '正好需要用到… 感謝分享!!!!',
+    '感謝版主分享 ,學習應用!!! ',
+    '下載研究看看 ,正在學習中, 感謝分享!! ',
+    '很實用的軟體，謝謝樓主分享!!',
+    '終於找到版本了~~ 感謝大大提供這個資訊供大家分享。'
+    ]
+
+    reply_format = [
     '下載日期 : ' ,
     '下載方式： BT' ,
     '下載速度 : ' ,
@@ -137,29 +105,33 @@ def reply_format():
          reply = reply_format[i]
          reply_str = reply + feedback[random.randrange(1, len(feedback),1 )]
          reply_str_all.append(reply_str)
-        else : 
+        else :
          #print(reply_format[i])
          reply = reply_format[i]
          reply_str = reply
          reply_str_all.append(reply_str)
     ## lists modle change to string line modle & return  
     format_str =''
-    for sstr in reply_str_all:  
-        format_str = format_str + sstr + '\n'        
+    for sstr in reply_str_all:
+        format_str = format_str + sstr + '\n'
 
     return  format_str  ##return reply format 
 
+
+
+
+
 ###  Get BT HD page   
-def get_link(bt_hd_url,today_week):
-    page_num = random.randrange(10,25,1)
-    bt_hd_url=bt_hd_url+str(page_num)
+def get_link(bt_software_url,today_week):
+    page_num = random.randrange(1,35,1)
+    bt_software_url=bt_software_url+str(page_num)
     get_link_list= []
 
-    ### Login BT HD page 
-    web.get(bt_hd_url) ## login BT HD page
+    ### Login BT software page 
+    web.get(bt_software_url) ## login BT software page
     time.sleep(random.randrange(1, 2, 1))
-    logger = logging.getLogger(bt_hd_url)
-    logger.info("BT HD page !!")
+    logger = logging.getLogger(bt_software_url)
+    logger.info("BT software page !!")
     soup = BeautifulSoup(web.page_source , "html.parser")
     ### Get BR HD link
     threadlist = soup.find(id='threadlisttableid')  ## get forum threadlist ID
@@ -171,9 +143,9 @@ def get_link(bt_hd_url,today_week):
     #today_week = datetime.date.today().strftime("%w")
 
     if int(today_week) > 5 :
-            ran_rows = random.randrange(3,7,1) ## get non-repetitive random 2~5 rows from get_link_list
+            ran_rows = random.randrange(2,5,1) ## get non-repetitive random 2~5 rows from get_link_list
     else :
-            ran_rows = random.randrange(2,4,1) ## get non-repetitive random 2~5 rows from get_link_list
+            ran_rows = random.randrange(1,3,1) ## get non-repetitive random 2~5 rows from get_link_list
 
     non_rep_link_list = random.sample(get_link_list, k=ran_rows)
     return non_rep_link_list
@@ -265,71 +237,91 @@ def get_credit(myusername):
      logger.info(li_list.text)
 
 
-### Get emot id 
-def get_emot_id(web):
-    ###find(name,attrs,recursive,text,**wargs)
-    emotid_list = []
-    soup = BeautifulSoup(web.page_source, "html.parser")
-    dcsignin2_list = soup.find_all('div', attrs={'class': re.compile('dcsignin2')})  ## find out signin icon
-    for dcsignin2 in dcsignin2_list :
-        img_list = dcsignin2.find('img')  ## record img data
-        emotid_list.append(img_list.get('id'))  ##record  emotid id values
-    
-    ran_rows = random.randrange(0, len(emotid_list), 1)  ## get random id
-    return emotid_list[ran_rows]
-
 ### Login User Page
-## get user & pwd 
-#myusername_list , mypassword_list , uid_list = get_config() ## get loging user && pwd 
-myusername_list , mypassword_list , uid_list = get_redis_data() ## get loging user && pwd 
+myusername_list , mypassword_list , uid_list = get_config() ## get loging user && pwd
 
 for num in range(len(myusername_list)):
     myusername=myusername_list[num] 
     mypassword =mypassword_list[num]
-    #myreply_history_url = reply_history_p1+ uid_list[num] + reply_history_p2
-    #log_file = 'myreply_history_'+myusername+'.log'    
+    myreply_history_url = reply_history_p1+ uid_list[num] + reply_history_p2
+    log_file = 'myreply_history_'+myusername+'.log'    
  
     #web = webdriver.Chrome() ## for cron path	
     web = webdriver.Chrome('/usr/local/bin/chromedriver') ## for cron path	
     web.get(url)
-    time.sleep(random.randrange(3, 5, 1))
-
+    time.sleep(random.randrange(1, 5, 1))
     web.find_element_by_id("ls_username").send_keys(myusername)
     web.find_element_by_id("ls_password").send_keys(mypassword)
     web.find_element_by_xpath("//button[contains(@class, 'pn vm')]").submit() ## login
-    logger = logging.getLogger(myusername)
+    logger = logging.getLogger(myusername)   
     logger.info("login botton is success")
-    time.sleep(random.randrange(2, 10, 1))
- 
-    ### click signature btn of dcsignin_tips
-    signature_url = WebDriverWait(web, 15).until(EC.element_to_be_clickable((By.ID, 'dcsignin_tips')))  ###  top signature button of login form
-    signature_url.click() ## page jump
-    time.sleep(random.randrange(2, 5, 1))
+    time.sleep(random.randrange(1, 5, 1))
 
-    try:## prepare client info
-        ### get random emot_id
-        emot_id = get_emot_id(web)
-        logger = logging.getLogger(emot_id)
-        logger.info("emot_id is successed!!")
-        signframe = web.find_element_by_id('fwin_sign')
-        postForm = web.find_element_by_id("signform")
-        p_emot_id = web.find_element_by_id(emot_id)
-        click_btn = web.find_element_by_xpath("//button[@name='signpn']") 
-        ### mouse clieck emot & btn 
-        ActionChains(web).move_to_element(postForm).click(p_emot_id).click(click_btn).perform()
-        time.sleep(random.randrange(5, 10, 1))
-        logger = logging.getLogger(myusername)
-        logger.info("signature is successed!!")
+    ### Get User myreply_history lists
+    ### try to open myreply log_file , if is exist 
+    try :
+          with open(log_file) as rp:
+               row_data = rp.readlines()
+               all_page_lists_tids = str_split_3(row_data) ### get tid lists from log file
+          rp.close()
+    except : 
+            ## first times data list is empty 
+            all_page_lists_tids  = myreply_history(myusername,myreply_history_url,log_file)  ## from all_page_lists_tids
+    
+    ### check auto_get_link_list avoid get_link result is 0
+    while 1 :  
+             auto_get_link_list = []
+             non_rep_link_list = get_link(bt_software_url,today_week) ### Get auto_reply_link          
+             chk_link_list , log_file_tids=  chk_reply_tid(non_rep_link_list,all_page_lists_tids)  ## check auto_reply_link avoid is exist in  myreply_history
+             
+             if len(chk_link_list) > 0 :  ### non-repetitive reply link more than the 1
+                for str_link in chk_link_list :
+                   auto_get_link_list.append(url + str_link)  ### full link addr
+                break
+    ###  Auto_Reply 
+    log_tids_num = 0 
+    with open(log_file,'a') as chkp:
+        for auto_link_str in auto_get_link_list :
+            auto_reply = reply_format()
+            ## threadlist page change
+            web.get(auto_link_str)
+            time.sleep(random.randrange(1, 5, 1))
+            try : 
+                 web.find_element_by_id("fastpostmessage").clear()
+                 web.find_element_by_id("fastpostmessage").send_keys(auto_reply) ## reply format_str on textarea
+                 time.sleep(random.randrange(1, 5, 1))
+                 WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.ID, "fastpostsubmit"))).submit() ## textarea submit
+                 #print(auto_link_str,auto_reply)
+                 ###write into log files 
+                 chkp.write(log_file_tids[log_tids_num] + '\n') ## write tids to myhistory file
+                 log_tids_num = log_tids_num +1
+                 logger = logging.getLogger(auto_link_str)
+                 logger.info("reply is successed ,waiting next link !!")
+                 time.sleep(random.randrange(10, 30, 1))                                  
 
+            except :
+                    logger = logging.getLogger(auto_link_str)
+                    logger.info("reply is failed!!")                         
+                    break
+
+    chkp.close()
+    logger = logging.getLogger(myusername)
+    logger.info("reply all done!!") 
+    time.sleep(random.randrange(1, 5, 1))     
+    ###  Login user task 
+    web.get(url2)
+    time.sleep(random.randrange(1, 5, 1))
+
+    ### Got redpackage 
+    try: 
+        link = WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.XPATH, "//img[@alt='apply']")))
+        link.click()
+        logger = logging.getLogger(myusername)		
+        logger.info("get redpackage is successed!!")
     except:
           logger = logging.getLogger(myusername)
-          logger.info("signature is not exist!!")
-    
-    time.sleep(random.randrange(3, 10, 1)) 
-   
-    ### auto reply not yat 
-    ###
-    ###
+          logger.info("link is not exist!!")
+
     ### Get Credit info && close web 
     get_credit(myusername)
     time.sleep(random.randrange(1, 10, 1))
@@ -346,23 +338,22 @@ time.sleep(random.randrange(1, 10, 1))
 logging.info("user all done!!")
 display.stop()
 
-
 ### Send Email on monday 
 
 #today_week = datetime.date.today().strftime("%w")
 
-if today_week == '1' :
+#if today_week == '1' :
      ### read for log last 47 line of mail body
-     body = '' 
-     try:
-             with open('awa_login_with_reply.log') as fp:
-              data = fp.readlines()
-              for i in data[-22:]:
-               body  = body + i
-     
-     finally:
+body = ''     
+try:
+      with open('p2p_login_with_reply_software.log') as fp:
+           data = fp.readlines()
+           for i in data[-47:]:
+             body  = body + i
+
+finally:
          fp.close()
-     
-     
-     send_mail.send_email('awalogin auto loging',body)
+
+
+send_mail.send_email('p2plogin_software auto loging',body)
 
