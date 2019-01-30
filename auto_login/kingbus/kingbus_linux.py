@@ -326,13 +326,6 @@ for u_num in range(len(myusername_list)):
                           break  ### set is full 
 
 
-           ## seat is full
-           """
-           elif j  (len(seat_list)+1) :
-                logger_num1 = logging.getLogger(s_num)
-                logger_num1.info("choice seat_from seat is full")
-                break
-           """
            ### choice return seat
 
            if k < len(seat_list) :
@@ -348,13 +341,8 @@ for u_num in range(len(myusername_list)):
                        if k >= len(seat_list):
                           logging.info("choice seat_return seat is full")
                           break
-           """
-           elif k == (len(seat_list)+1) :
-                logger_num2 = logging.getLogger(s_num)
-                logger_num2.info("choice seat_return seat is full")
-                break
-           """
            ##  choice seat is all done
+
            if j == 99 and k == 99:
              break
 
