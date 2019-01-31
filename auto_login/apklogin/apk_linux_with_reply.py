@@ -91,7 +91,6 @@ def get_redis_data():
 
 
 
-
 ###  Reply Format 
 def reply_format(): 
     reply_str_all =[]
@@ -114,7 +113,8 @@ def reply_format():
     '評價很不錯,絕無冷場,很緊湊的一部好戲,感謝分享!',
     '終於等到好的字幕，假日可以好好欣賞，謝謝大大的分享。',
     '畫質還不錯,感謝大大的分享.', 
-    '我很喜歡的劇情、精彩的片段 , 謝謝分享']
+    '我很喜歡的劇情、精彩的片段 , 謝謝分享',
+    '感覺畫質還不錯,不知道翻譯如何？ 感謝大大的分享!']
         
     reply_format = [ 
     '下載日期 : ' ,
@@ -170,7 +170,8 @@ def simple_reply_format():
     '評價很不錯,絕無冷場,很緊湊的一部好戲,感謝分享!',
     '終於等到好的字幕，假日可以好好欣賞，謝謝大大的分享。',
     '畫質還不錯,感謝大大的分享.',
-    '我很喜歡的劇情、精彩的片段 , 謝謝分享']
+    '我很喜歡的劇情、精彩的片段 , 謝謝分享',
+    '感覺畫質還不錯,不知道翻譯如何？ 感謝大大的分享!']
     
     return  feedback[random.randrange(1, len(feedback),1 )]  ##return reply format
 
@@ -411,10 +412,9 @@ for num in range(len(myusername_list)):
             fs_btn =web.find_element_by_id('fastpostsubmit')
             time.sleep(random.randrange(3, 5, 1))
             #logger.info(" reply fastpostmessage is success!!")
-            """
             ActionChains(web).move_to_element(fs_btn).perform() ### mousemove btn
             time.sleep(random.randrange(2, 5, 1))           
-            
+
             try :
                  ### display checkpost 
                  soup = BeautifulSoup(web.page_source , "html.parser")
@@ -427,9 +427,7 @@ for num in range(len(myusername_list)):
                  time.sleep(random.randrange(2, 5, 1))
                  ### post answer  to  checkpost
                  ActionChains(web).move_to_element(ans_form).send_keys_to_element(ans_form,ans).click(fs_btn).perform()
-            """
-            try :
-                 ActionChains(web).click(fs_btn).perform()
+                 #ActionChains(web).click(fs_btn).perform()
                  time.sleep(random.randrange(3, 5, 1))
                  ### write tid to log_file 
                  #chkp.write(log_file_tids[log_tids_num] + '\n')
@@ -438,7 +436,8 @@ for num in range(len(myusername_list)):
                  logger = logging.getLogger(auto_link_str)
                  logger.info("reply is successed ,waiting next link !!")
                  time.sleep(random.randrange(10, 30, 1))
-
+            
+            
             except :
                     logger = logging.getLogger(auto_link_str)
                     logger.info("reply is failed!!")
