@@ -162,13 +162,13 @@ display.stop()
 
      ### read for log last 5 line of mail body
 body = ''
-     try:
-              with open('no_ip.log') as fp:
-              data = fp.readlines()
-              for i in data[-10:]:
-               body  = body + i
+try:
+     with open('no_ip.log') as fp:
+      data = fp.readlines()
+      for i in data[-10:]:
+          body  = body + i
 
-     finally:
+finally:
          fp.close()
 
 
