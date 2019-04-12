@@ -197,6 +197,7 @@ def reply_drama_format():
     return  format_drama_str  ##return reply format 
 
 
+def get_link(ori_bt_hd_url,today_week):
 
     get_link_list= []
     if int(today_week) > 5 or int(today_week) == 0 :
@@ -385,14 +386,11 @@ for num in range(len(myusername_list)):
     ### check auto_get_link_list avoid get_link result is 0
     while 1 :  
              auto_get_link_list = []
-             non_rep_link_list = get_link(bt_hd_url,today_week) ### Get auto_reply_link          
-             chk_link_list , log_file_tids=  chk_reply_tid(non_rep_link_list,all_page_lists_tids)  ## check auto_reply_link avoid is exist in  myreply_history
              rep_link_list,ran_rows = get_link(bt_hd_url,today_week) ### Get auto_reply_link
              chk_link_list , log_file_tids=  chk_reply_tid(rep_link_list,all_page_lists_tids,ran_rows)  ## check auto_reply_link avoid is exist in  myreply_history
              #non_rep_link_list = get_link(bt_hd_url,today_week) ### Get auto_reply_link          
              #chk_link_list , log_file_tids=  chk_reply_tid(non_rep_link_list,all_page_lists_tids)  ## check auto_reply_link avoid is exist in  myreply_history
              
-             if len(chk_link_list) > 1 :  ### non-repetitive reply link more than the 1
              if len(chk_link_list) > 0 :  ### non-repetitive reply link more than the 1
                 for str_link in chk_link_list :
                    auto_get_link_list.append(url + str_link)  ### full link addr
