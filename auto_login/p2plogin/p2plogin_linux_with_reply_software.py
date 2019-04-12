@@ -140,7 +140,7 @@ def reply_format():
 
 
 ###  Get BT HD page   
-def get_link(ori_bt_hd_url,today_week):
+def get_link(ori_bt_software_url,today_week):
 
     get_link_list= []
     if int(today_week) > 5 or int(today_week) == 0 :
@@ -152,11 +152,11 @@ def get_link(ori_bt_hd_url,today_week):
 
     ### each page got  ran_rows
     for page_num in page_num_list :
-        bt_hd_url=ori_bt_hd_url+str(page_num)
+        bt_software_url=ori_bt_software_url+str(page_num)
         ### Login BT HD page
-        web.get(bt_hd_url) ## login BT HD page
+        web.get(bt_software_url) ## login BT HD page
         time.sleep(random.randrange(1, 2, 1))
-        logger = logging.getLogger(bt_hd_url)
+        logger = logging.getLogger(bt_software_url)
         logger.info("BT HD page !!")
         soup = BeautifulSoup(web.page_source , "html.parser")
         ### Get BR HD link
@@ -266,7 +266,7 @@ def chk_reply_tid(rep_link_list,all_page_lists_tids,ran_rows) :
                 log_file_tids.append(elem)  ## tid to list
              else :
                    break
-        k+=1
+        k += 1
     #non_rep_link_list = random.sample(get_link_list, k=ran_rows)
     ## return exclude link_str of myreply_history_tid_list
     return link_str,log_file_tids
@@ -327,9 +327,9 @@ for num in range(len(myusername_list)):
     ### check auto_get_link_list avoid get_link result is 0
     while 1 :
              auto_get_link_list = []
-             rep_link_list,ran_rows = get_link(bt_hd_url,today_week) ### Get auto_reply_link
+             rep_link_list,ran_rows = get_link(bt_software_url,today_week) ### Get auto_reply_link
              chk_link_list , log_file_tids=  chk_reply_tid(rep_link_list,all_page_lists_tids,ran_rows)  ## check auto_reply_link avoid is exist in  myreply_history
-             #non_rep_link_list = get_link(bt_hd_url,today_week) ### Get auto_reply_link          
+             #non_rep_link_list = get_link(bt_software_url,today_week) ### Get auto_reply_link          
              #chk_link_list , log_file_tids=  chk_reply_tid(non_rep_link_list,all_page_lists_tids)  ## check auto_reply_link avoid is exist in  myreply_history
 
              if len(chk_link_list) > 0 :  ### non-repetitive reply link more than the 1
