@@ -106,7 +106,8 @@ def reply_format():
     '評價很不錯,絕無冷場,很緊湊的一部好戲,感謝分享!',
     '終於等到好的字幕，假日可以好好欣賞，謝謝大大的分享。',
     '畫質還不錯,感謝大大的分享.',
-    '我很喜歡的劇情、精彩的片段 , 謝謝分享' ]
+    '我很喜歡的劇情、精彩的片段 , 謝謝分享',
+    '劇情真特別 ~ 感謝大大辛苦 下載來觀賞' ]
         
     reply_format = [ 
     '下載日期 : ' ,
@@ -197,37 +198,36 @@ def reply_drama_format():
 
 
 
-
-
-###  Get BT HD page   
-def get_link(bt_hd_url,today_week):
-    page_num = random.randrange(10,45,1)
-    bt_hd_url=bt_hd_url+str(page_num)
     get_link_list= []
-
-    ### Login BT HD page 
-    web.get(bt_hd_url) ## login BT HD page
-    time.sleep(random.randrange(1, 2, 1))
-    logger = logging.getLogger(bt_hd_url)
-    logger.info("BT HD page !!")
-    soup = BeautifulSoup(web.page_source , "html.parser")
-    ### Get BR HD link
-    threadlist = soup.find(id='threadlisttableid')  ## get forum threadlist ID
-    for normalthread_list  in threadlist.find_all('tbody',{'id':re.compile('^normalthread_')}):  ## match rows
-        for td_list in normalthread_list.find_all('td',{'class':re.compile('icn')}):
-            for link  in td_list.find_all('a'):  ##get all link
-                get_link_list.append(link.get('href'))
-    ### check non-repetitive link list
-    #today_week = datetime.date.today().strftime("%w")
-
-    if int(today_week) > 5 :
-            ran_rows = random.randrange(5,10,1) ## get non-repetitive random 2~5 rows from get_link_list
+    if int(today_week) > 5 or int(today_week) == 0 :
+            ran_rows = random.randrange(3,5,1) ## get non-repetitive random 2~5 rows from get_link_list
     else :
             ran_rows = random.randrange(2,4,1) ## get non-repetitive random 2~5 rows from get_link_list
+    ## got page list random page num 
+    page_num_list=random.sample(list(range(10,40)), k=ran_rows)
 
-    non_rep_link_list = random.sample(get_link_list, k=ran_rows)
-    return non_rep_link_list
-    
+    ### each page got  ran_rows
+    for page_num in page_num_list :
+        bt_hd_url=ori_bt_hd_url+str(page_num)
+        ### Login BT HD page
+        web.get(bt_hd_url) ## login BT HD page
+        time.sleep(random.randrange(1, 2, 1))
+        logger = logging.getLogger(bt_hd_url)
+        logger.info("BT HD page !!")
+        soup = BeautifulSoup(web.page_source , "html.parser")
+        ### Get BR HD link
+        threadlist = soup.find(id='threadlisttableid')  ## get forum threadlist ID
+        for normalthread_list  in threadlist.find_all('tbody',{'id':re.compile('^normalthread_')}):  ## match rows
+              for td_list in normalthread_list.find_all('td',{'class':re.compile('icn')}):
+                  for link  in td_list.find_all('a'):  ##get all link
+                      get_link_list.append(link.get('href'))
+
+        time.sleep(random.randrange(1, 3, 1))
+
+    ### check non-repetitive link list
+    return get_link_list,ran_rows
+
+   
 def myreply_history(myusername,myreply_history_url,log_file_key):
     
     myreply_history_list = []
@@ -308,22 +308,28 @@ def str_split_3(sttr_list) :
    return str_split_list
 
 """
+
 ###check  tid auto_reply && myreply 
-def chk_reply_tid(non_rep_link_list,all_page_lists_tids) :
+def chk_reply_tid(rep_link_list,all_page_lists_tids,ran_rows) :
     link_str = []
     log_file_tids = []
-    chk_non_rep_tid_list = str_split_1(non_rep_link_list)
+    random.shuffle(rep_link_list) ## random list seq
+    chk_rep_tid_list = str_split_1(rep_link_list)
     chk_myreply_history_tid_list = all_page_lists_tids
     ### check tid not in exist  myreply_history lists
-    k=0 
-    for elem in chk_non_rep_tid_list :
+    k=0
+    ### check exclude on all_page_lists_tids link list
+    for elem in chk_rep_tid_list :
         if elem not in chk_myreply_history_tid_list:  ### not in the lists , will be write into log file
-           link_str.append(non_rep_link_list[k])
-           log_file_tids.append(elem) 
-        k = k +1   
-    
+             if len(log_file_tids) < ran_rows:
+                link_str.append(rep_link_list[k]) ##link_str to list
+                log_file_tids.append(elem)  ## tid to list
+             else :
+                   break
+        k+=1
+    #non_rep_link_list = random.sample(get_link_list, k=ran_rows)
+    ## return exclude link_str of myreply_history_tid_list
     return link_str,log_file_tids
-
 
 ### Get User Credit To Log Records
 def get_credit(myusername):
@@ -381,8 +387,13 @@ for num in range(len(myusername_list)):
              auto_get_link_list = []
              non_rep_link_list = get_link(bt_hd_url,today_week) ### Get auto_reply_link          
              chk_link_list , log_file_tids=  chk_reply_tid(non_rep_link_list,all_page_lists_tids)  ## check auto_reply_link avoid is exist in  myreply_history
+             rep_link_list,ran_rows = get_link(bt_hd_url,today_week) ### Get auto_reply_link
+             chk_link_list , log_file_tids=  chk_reply_tid(rep_link_list,all_page_lists_tids,ran_rows)  ## check auto_reply_link avoid is exist in  myreply_history
+             #non_rep_link_list = get_link(bt_hd_url,today_week) ### Get auto_reply_link          
+             #chk_link_list , log_file_tids=  chk_reply_tid(non_rep_link_list,all_page_lists_tids)  ## check auto_reply_link avoid is exist in  myreply_history
              
              if len(chk_link_list) > 1 :  ### non-repetitive reply link more than the 1
+             if len(chk_link_list) > 0 :  ### non-repetitive reply link more than the 1
                 for str_link in chk_link_list :
                    auto_get_link_list.append(url + str_link)  ### full link addr
                 break

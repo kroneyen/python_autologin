@@ -150,33 +150,36 @@ def reply_format():
     return  format_str  ##return reply format 
 
 ###  Get BT HD page   
-def get_link(bt_hd_url,today_week):
-    page_num = random.randrange(10,25,1)
-    bt_hd_url=bt_hd_url+str(page_num)
+def get_link(ori_bt_hd_url,today_week):
+
     get_link_list= []
-
-    ### Login BT HD page 
-    web.get(bt_hd_url) ## login BT HD page
-    time.sleep(random.randrange(1, 2, 1))
-    logger = logging.getLogger(bt_hd_url)
-    logger.info("BT HD page !!")
-    soup = BeautifulSoup(web.page_source , "html.parser")
-    ### Get BR HD link
-    threadlist = soup.find(id='threadlisttableid')  ## get forum threadlist ID
-    for normalthread_list  in threadlist.find_all('tbody',{'id':re.compile('^normalthread_')}):  ## match rows
-        for td_list in normalthread_list.find_all('td',{'class':re.compile('icn')}):
-            for link  in td_list.find_all('a'):  ##get all link
-                get_link_list.append(link.get('href'))
-    ### check non-repetitive link list
-    #today_week = datetime.date.today().strftime("%w")
-
     if int(today_week) > 5 :
             ran_rows = random.randrange(3,7,1) ## get non-repetitive random 2~5 rows from get_link_list
     else :
             ran_rows = random.randrange(2,4,1) ## get non-repetitive random 2~5 rows from get_link_list
+    ## got page list random page num 
+    page_num_list=random.sample(list(range(10,25)), k=ran_rows)
 
-    non_rep_link_list = random.sample(get_link_list, k=ran_rows)
-    return non_rep_link_list
+    ### each page got  ran_rows
+    for page_num in page_num_list :
+        bt_hd_url=ori_bt_hd_url+str(page_num)
+        ### Login BT HD page
+        web.get(bt_hd_url) ## login BT HD page
+        time.sleep(random.randrange(1, 2, 1))
+        logger = logging.getLogger(bt_hd_url)
+        logger.info("BT HD page !!")
+        soup = BeautifulSoup(web.page_source , "html.parser")
+        ### Get BR HD link
+        threadlist = soup.find(id='threadlisttableid')  ## get forum threadlist ID
+        for normalthread_list  in threadlist.find_all('tbody',{'id':re.compile('^normalthread_')}):  ## match rows
+              for td_list in normalthread_list.find_all('td',{'class':re.compile('icn')}):
+                  for link  in td_list.find_all('a'):  ##get all link
+                      get_link_list.append(link.get('href'))
+
+        time.sleep(random.randrange(1, 3, 1))
+
+    ### check non-repetitive link list
+    return get_link_list,ran_rows
     
 def myreply_history(myusername,myreply_history_url,log_file):
     
@@ -239,21 +242,26 @@ def str_split_3(sttr_list) :
 
 
 ###check  tid auto_reply && myreply 
-def chk_reply_tid(non_rep_link_list,all_page_lists_tids) :
+def chk_reply_tid(rep_link_list,all_page_lists_tids,ran_rows) :
     link_str = []
     log_file_tids = []
-    chk_non_rep_tid_list = str_split_1(non_rep_link_list)
+    random.shuffle(rep_link_list) ## random list seq
+    chk_rep_tid_list = str_split_1(rep_link_list)
     chk_myreply_history_tid_list = all_page_lists_tids
     ### check tid not in exist  myreply_history lists
-    k=0 
-    for elem in chk_non_rep_tid_list :
+    k=0
+    ### check exclude on all_page_lists_tids link list
+    for elem in chk_rep_tid_list :
         if elem not in chk_myreply_history_tid_list:  ### not in the lists , will be write into log file
-           link_str.append(non_rep_link_list[k])
-           log_file_tids.append(elem) 
-        k = k +1   
-    
+             if len(log_file_tids) < ran_rows:
+                link_str.append(rep_link_list[k]) ##link_str to list
+                log_file_tids.append(elem)  ## tid to list
+             else :
+                   break
+        k+=1
+    #non_rep_link_list = random.sample(get_link_list, k=ran_rows)
+    ## return exclude link_str of myreply_history_tid_list
     return link_str,log_file_tids
-
 
 ### Get User Credit To Log Records
 def get_credit(myusername):
@@ -298,19 +306,26 @@ for num in range(len(myusername_list)):
     web.find_element_by_id("ls_password").send_keys(mypassword)
     web.find_element_by_xpath("//button[contains(@class, 'pn vm')]").submit() ## login
     logger = logging.getLogger(myusername)
-    logger.info("login botton is success")
+    logger.info("login botton is successed")
     time.sleep(random.randrange(2, 10, 1))
  
     ### click signature btn of dcsignin_tips
     signature_url = WebDriverWait(web, 15).until(EC.element_to_be_clickable((By.ID, 'dcsignin_tips')))  ###  top signature button of login form
     signature_url.click() ## page jump
+    logger.info("signature botton is successed")
     time.sleep(random.randrange(2, 5, 1))
+    #logger.info("singture botton is not exist")
+
+    try : ### get random emot_id
+         emot_id = get_emot_id(web)
+         logger_emot_id = logging.getLogger(emot_id)
+         logger_emot_id.info("emot_id got is successed!!")  
+
+    except :
+           logger.info("emot_id got is failed or Already signature")
+           break
 
     try:## prepare client info
-        ### get random emot_id
-        emot_id = get_emot_id(web)
-        logger = logging.getLogger(emot_id)
-        logger.info("emot_id is successed!!")
         signframe = web.find_element_by_id('fwin_sign')
         postForm = web.find_element_by_id("signform")
         p_emot_id = web.find_element_by_id(emot_id)
@@ -322,9 +337,9 @@ for num in range(len(myusername_list)):
         logger.info("signature is successed!!")
 
     except:
-          logger = logging.getLogger(myusername)
-          logger.info("signature is not exist!!")
-    
+          logger.info("signature is failed!!")
+          break 
+  
     time.sleep(random.randrange(3, 10, 1)) 
    
     ### auto reply not yat 

@@ -171,41 +171,49 @@ def simple_reply_format():
     '終於等到好的字幕，假日可以好好欣賞，謝謝大大的分享。',
     '畫質還不錯,感謝大大的分享.',
     '我很喜歡的劇情、精彩的片段 , 謝謝分享',
-    '感覺畫質還不錯,不知道翻譯如何？ 感謝大大的分享!']
+    '感覺畫質還不錯,不知道翻譯如何？ 感謝大大的分享!',
+    '劇情真特別 ~ 感謝大大辛苦 下載來觀賞']
     
     return  feedback[random.randrange(1, len(feedback),1 )]  ##return reply format
 
 
 
-
 ###  Get BT HD page   
-def get_link(bt_hd_url,today_week):
-    page_num = random.randrange(10,45,1)
-    bt_hd_url=bt_hd_url+str(page_num)+'.html'  ## apk BT_URL page format
+
+def get_link(ori_bt_hd_url,today_week):
+
     get_link_list= []
-
-    ### Login BT HD page 
-    web.get(bt_hd_url) ## login BT HD page
-    time.sleep(random.randrange(1, 2, 1))
-    logger = logging.getLogger(bt_hd_url)
-    logger.info("BT HD page !!")
-    soup = BeautifulSoup(web.page_source , "html.parser")
-    ### Get BT HD link 
-    threadlist = soup.find(id='threadlisttableid')  ## get forum threadlist ID
-    for normalthread_list  in threadlist.find_all('tbody',{'id':re.compile('^normalthread_')}):  ## match rows
-        for td_list in normalthread_list.find_all('td',{'class':re.compile('icn')}):
-            for link  in td_list.find_all('a'):  ##get all link
-                get_link_list.append(link.get('href'))
-    ### check non-repetitive link list
-    #today_week = datetime.date.today().strftime("%w")
-
-    if int(today_week) > 5 :
-            ran_rows = random.randrange(3,7,1) ## get non-repetitive random 2~5 rows from get_link_list
+    if (int(today_week) > 4) or (int(today_week) == 0) : ## 0:sun 6:sat
+            ran_rows = random.randrange(2,5,1) ## get non-repetitive random 2~5 rows from get_link_list
     else :
-            ran_rows = random.randrange(2,4,1) ## get non-repetitive random 2~5 rows from get_link_list
+            ran_rows = random.randrange(1,3,1) ## get non-repetitive random 2~5 rows from get_link_list
+    ## got page list random page num 
+    page_num_list=random.sample(list(range(5,20)), k=ran_rows)
 
-    non_rep_link_list = random.sample(get_link_list, k=ran_rows)
-    return non_rep_link_list
+    ### each page got  ran_rows
+    for page_num in page_num_list :
+        bt_hd_url=ori_bt_hd_url+str(page_num)+'.html'  ## apk BT_URL page format
+        ### Login BT HD page
+        web.get(bt_hd_url) ## login BT HD page
+        time.sleep(random.randrange(1, 2, 1))
+        logger = logging.getLogger(bt_hd_url)
+        logger.info("BT HD page !!")
+        soup = BeautifulSoup(web.page_source , "html.parser")
+        ### Get BR HD link
+        threadlist = soup.find(id='threadlisttableid')  ## get forum threadlist ID
+        for normalthread_list  in threadlist.find_all('tbody',{'id':re.compile('^normalthread_')}):  ## match rows
+              for td_list in normalthread_list.find_all('td',{'class':re.compile('icn')}):
+                  for link  in td_list.find_all('a'):  ##get all link
+                      get_link_list.append(link.get('href'))
+
+        time.sleep(random.randrange(1, 3, 1))
+
+    ### check non-repetitive link list
+    return get_link_list,ran_rows
+
+
+
+
     
 def myreply_history(myusername,myreply_history_url,log_file_key):
     
@@ -284,19 +292,25 @@ def str_split_3(sttr_list) :
 
 
 ###check  tid auto_reply && myreply 
-def chk_reply_tid(non_rep_link_list,all_page_lists_tids) :
+def chk_reply_tid(rep_link_list,all_page_lists_tids,ran_rows) :
     link_str = []
     log_file_tids = []
-    chk_non_rep_tid_list = str_split_1(non_rep_link_list)
+    random.shuffle(rep_link_list) ## random list seq
+    chk_rep_tid_list = str_split_1(rep_link_list)
     chk_myreply_history_tid_list = all_page_lists_tids
     ### check tid not in exist  myreply_history lists
-    k=0 
-    for elem in chk_non_rep_tid_list :
+    k=0
+    ### check exclude on all_page_lists_tids link list
+    for elem in chk_rep_tid_list :
         if elem not in chk_myreply_history_tid_list:  ### not in the lists , will be write into log file
-           link_str.append(non_rep_link_list[k])
-           log_file_tids.append(elem) 
-        k = k +1   
-    
+             if len(log_file_tids) < ran_rows:
+                link_str.append(rep_link_list[k]) ##link_str to list
+                log_file_tids.append(elem)  ## tid to list
+             else :
+                   break
+        k+=1
+    #non_rep_link_list = random.sample(get_link_list, k=ran_rows)
+    ## return exclude link_str of myreply_history_tid_list
     return link_str,log_file_tids
 
 
@@ -317,6 +331,28 @@ def get_ans(sttr):
    return row_str_split_2[0]
 
 
+
+### get post message & next page
+def get_post_message(auto_link_str):
+    page_num =1
+    pp = []
+    while 1 :
+             
+             web.get(auto_link_str)
+             soup = BeautifulSoup(web.page_source, "html.parser")
+             postlist = soup.find('div',{'id':re.compile('postlist')})
+             for td_t_f in postlist.find_all('td',class_="t_f"):
+               pp.append(td_t_f.get_text()) ## get post text
+             ### next post page
+             try :
+                   WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, "nxt")))
+                   time.sleep(random.randrange(2, 5, 1))
+                   page_num = page_num + 1
+                   auto_link_str = auto_link_str.replace("-" + str(page_num - 1)+"-1", "-" + str(page_num)+"-1", 1) ## replace https://apk.tw/thread-903419-XX-1.html
+             except :
+                     break
+
+    return pp[random.randrange(1,len(pp),1)]  ## random get reply text
 
 ### Login User Page
 ## get user & pwd 
@@ -389,19 +425,26 @@ for num in range(len(myusername_list)):
     ### check auto_get_link_list avoid get_link result is 0
     while 1 :
              auto_get_link_list = []
-             non_rep_link_list = get_link(bt_hd_url,today_week) ### Get auto_reply_link          
-             chk_link_list , log_file_tids=  chk_reply_tid(non_rep_link_list,all_page_lists_tids)  ## check auto_reply_link avoid is exist in  myreply_history
+             rep_link_list,ran_rows = get_link(bt_hd_url,today_week) ### Get auto_reply_link
+             chk_link_list , log_file_tids=  chk_reply_tid(rep_link_list,all_page_lists_tids,ran_rows)  ## check auto_reply_link avoid is exist in  myreply_history
+             #non_rep_link_list = get_link(bt_hd_url,today_week) ### Get auto_reply_link          
+             #chk_link_list , log_file_tids=  chk_reply_tid(non_rep_link_list,all_page_lists_tids)  ## check auto_reply_link avoid is exist in  myreply_history
 
-             if len(chk_link_list) > 1 :  ### non-repetitive reply link more than the 1
+             if len(chk_link_list) > 0 :  ### non-repetitive reply link more than the 1
                 for str_link in chk_link_list :
-                   auto_get_link_list.append(short_url + str_link )  ### full link addr
+                   auto_get_link_list.append(url + str_link)  ### full link addr
                 break
     ###  Auto_Reply   
     log_tids_num = 0
     #with open(log_file,'a') as chkp:
     for auto_link_str in auto_get_link_list :
+
             #auto_reply = reply_format() ##change to simple_reply
-            auto_reply = simple_reply_format()
+            if log_tids_num == 0 :
+                  auto_reply = simple_reply_format()
+            else : 
+                  auto_reply = get_post_message(auto_get_link_list[log_tids_num-1])
+
             ## threadlist page change
             web.get(auto_link_str)
             #logger = logging.getLogger(auto_link_str)
@@ -412,9 +455,11 @@ for num in range(len(myusername_list)):
             fs_btn =web.find_element_by_id('fastpostsubmit')
             time.sleep(random.randrange(3, 5, 1))
             #logger.info(" reply fastpostmessage is success!!")
+            ### checkpost  
             ActionChains(web).move_to_element(fs_btn).perform() ### mousemove btn
             time.sleep(random.randrange(2, 5, 1))           
-
+            logger_link = logging.getLogger(auto_link_str)    
+            ### for checkpost
             try :
                  ### display checkpost 
                  soup = BeautifulSoup(web.page_source , "html.parser")
@@ -433,15 +478,23 @@ for num in range(len(myusername_list)):
                  #chkp.write(log_file_tids[log_tids_num] + '\n')
                  r.rpush(str(log_file_key),str(log_file_tids[log_tids_num]))
                  log_tids_num = log_tids_num +1 ##@ trun tid next 
-                 logger = logging.getLogger(auto_link_str)
-                 logger.info("reply is successed ,waiting next link !!")
+                 logger_link.info("reply with checkpost is successed ,waiting next link !!")
                  time.sleep(random.randrange(10, 30, 1))
             
             
             except :
-                    logger = logging.getLogger(auto_link_str)
-                    logger.info("reply is failed!!")
-                    break
+                    ### non checkpost
+                    try :
+                         ActionChains(web).click(fs_btn).perform()
+                         time.sleep(random.randrange(3, 5, 1))
+                         r.rpush(str(log_file_key),str(log_file_tids[log_tids_num]))
+                         log_tids_num = log_tids_num +1 ##@ trun tid next 
+                         logger_link.info("reply is successed ,waiting next link !!")
+                         time.sleep(random.randrange(10, 30, 1))
+                    
+                    except :
+                            logger_link.info("reply is failed!!")
+                            break
 
     #chkp.close()
     logger = logging.getLogger(myusername)
