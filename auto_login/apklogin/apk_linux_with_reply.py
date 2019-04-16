@@ -432,7 +432,7 @@ for num in range(len(myusername_list)):
 
              if len(chk_link_list) > 0 :  ### non-repetitive reply link more than the 1
                 for str_link in chk_link_list :
-                   auto_get_link_list.append(url + str_link)  ### full link addr
+                   auto_get_link_list.append(short_url + str_link)  ### full link addr
                 break
     ###  Auto_Reply   
     log_tids_num = 0
@@ -444,7 +444,7 @@ for num in range(len(myusername_list)):
                   auto_reply = simple_reply_format()
             else : 
                   auto_reply = get_post_message(auto_get_link_list[log_tids_num-1])
-
+            
             ## threadlist page change
             web.get(auto_link_str)
             #logger = logging.getLogger(auto_link_str)
