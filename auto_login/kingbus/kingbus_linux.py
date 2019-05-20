@@ -188,57 +188,77 @@ for u_num in range(len(myusername_list)):
       time.sleep(random.randrange(3, 5, 1))
       logger_mw = logging.getLogger(mark_word(myusername_list[u_num]))
       logger_mw.info("step1_next_click user login is success")
-      logging.info("step1_next_click user login is success")
+      #logging.info("step1_next_click user login is success")
 
       ### step 2
 
       ### choice station  from Taipei_bus_center to Chaoma terminal
-      Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlStation_ID_From")).select_by_value(s_start_id)
-
-      logging.info("From_location  is success")
-
-      time.sleep(random.randrange(3, 5, 1))
-      Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlStation_ID_To")).select_by_value(s_end_id)
-
-      logging.info("Destination_location  is success")
-      time.sleep(random.randrange(3, 5, 1))
-
+      try :
+            Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlStation_ID_From")).select_by_value(s_start_id)
+            logging.info("From_location  is success")
+            time.sleep(random.randrange(3, 5, 1))
+      except : 
+              logging.info("From_location  is failed")
+              web.save_screenshot('From_location_failed.png')
+              break
+      
+      try :
+            Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlStation_ID_To")).select_by_value(s_end_id)
+            logging.info("Destination_location  is success")
+            time.sleep(random.randrange(3, 5, 1))
+      except : 
+              logging.info("Destination_location  is failed")
+              web.save_screenshot('Destination_location_failed.png')
+              break
       ### choice station  from date , rutern date
-      web.find_element_by_id("ctl00_ContentPlaceHolder1_txtAOut_Dt").send_keys(day_from)
-
-      time.sleep(random.randrange(3, 5, 1))
-
       logger_day_from = logging.getLogger(day_from)
-      logger_day_from.info("From Date choose  is success")
-
-      web.find_element_by_id("ctl00_ContentPlaceHolder1_txtBOut_Dt").send_keys(day_return)
-
-      time.sleep(random.randrange(3, 5, 1))
+      try :
+           web.find_element_by_id("ctl00_ContentPlaceHolder1_txtAOut_Dt").send_keys(day_from)
+           logger_day_from.info("From Date choose  is success")
+           time.sleep(random.randrange(3, 5, 1))
+      except : 
+              logger_day_from.info("From Date choose  is failed")
+              web.save_screenshot('From_Date_choose_failed.png')
+              break             
+ 
       logger_day_return = logging.getLogger(day_return)
-      logger_day_return.info("Return Date choose  is success")
+      try :
+           web.find_element_by_id("ctl00_ContentPlaceHolder1_txtBOut_Dt").send_keys(day_return)
+           logger_day_return.info("Return Date choose  is success")
+           time.sleep(random.randrange(3, 5, 1))
+      except : 
+              logger_day_return.info("Return Date choose  is failed")
+              web.save_screenshot('Return_Date_choose_failed.png')
+              break
 
       ### search from time table
-
-      Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlAHour")).select_by_value(time_from_h)
-      time.sleep(random.randrange(3, 5, 1))
-
-      Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlAMinute")).select_by_value(time_from_m)
-      time.sleep(random.randrange(3, 5, 1))
-
       time_from = time_from_h + ':' +time_from_m
       logger_time_from = logging.getLogger(time_from)
-      logger_time_from.info("From Time choose is success")
+      try :
+           Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlAHour")).select_by_value(time_from_h)
+           time.sleep(random.randrange(3, 5, 1))
+           Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlAMinute")).select_by_value(time_from_m)
+           time.sleep(random.randrange(3, 5, 1))
+           logger_time_from.info("Search From Time choose is success")
+      except : 
+              logger_time_from.info("Search From Time choose is failed")
+              web.save_screenshot('SearchFromTime_failed.png')
+              time.sleep(random.randrange(1, 3, 1))
+              break
       ### search return time table
-
-      Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlBHour")).select_by_value(time_return_h)
-      time.sleep(random.randrange(3, 5, 1))
-      Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlBMinute")).select_by_value(time_return_m)
-      time.sleep(random.randrange(3, 5, 1))
-
       time_return = time_return_h + ':' + time_return_m
       logger_time_return = logging.getLogger(time_return)
-      logger_time_return.info("Return Time choose is success")
-
+      try :
+           Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlBHour")).select_by_value(time_return_h)
+           time.sleep(random.randrange(3, 5, 1))
+           Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlBMinute")).select_by_value(time_return_m)
+           time.sleep(random.randrange(3, 5, 1))
+           logger_time_return.info("Search Return Time choose is success")
+      except :
+              logger_time_return.info("Search Return Time choose is failed")
+              web.save_screenshot('Search ReturnTime_failed.png')
+              time.sleep(random.randrange(1, 3, 1))
+              break
       ### search time table button
 
       try :
@@ -248,6 +268,8 @@ for u_num in range(len(myusername_list)):
 
       except :
               logging.info("step2_next_click search time table is failed")
+              web.save_screenshot('SearchTime_failed.png')
+              time.sleep(random.randrange(1, 3, 1))
               break
 
       ### step 3
@@ -273,6 +295,8 @@ for u_num in range(len(myusername_list)):
       except:
             logger_f_o_time=logging.getLogger(f_o_time)
             logger_f_o_time.info("step3_click_1 check from time table  is failed")
+            web.save_screenshot('check_from_time_failed.png')
+            #break
 
       ## check return time table
       r_condi =''
@@ -289,7 +313,8 @@ for u_num in range(len(myusername_list)):
       except:
             logger_r_o_time=logging.getLogger(r_o_time)
             logger_r_o_time.info("step3_click_2 check return time table is failed")
-
+            web.save_screenshot('check_return_time_failed.png')
+            #break
       ### check time table button
       try:
           step3_click = WebDriverWait(web, 30).until(EC.element_to_be_clickable((By.ID, "ctl00_ContentPlaceHolder1_btnStep3_OK")))
@@ -299,6 +324,7 @@ for u_num in range(len(myusername_list)):
 
       except:
             logging.info("step3_next check time table button  is failed")
+            web.save_screenshot('CheckTimeTable_failed.png')
             break
 
       ### step 4
@@ -322,7 +348,8 @@ for u_num in range(len(myusername_list)):
                 except:
                        j = j+1
                        if j >= len(seat_list):
-                          logginf.info("choice seat_from seat is full")
+                          logging.info("choice seat_from seat is full")
+                          web.save_screenshot('seat_from_full.png')
                           break  ### set is full 
 
 
@@ -340,6 +367,7 @@ for u_num in range(len(myusername_list)):
                        k = k+1
                        if k >= len(seat_list):
                           logging.info("choice seat_return seat is full")
+                          web.save_screenshot('seat_return_full.png')
                           break
            ##  choice seat is all done
 
@@ -353,28 +381,31 @@ for u_num in range(len(myusername_list)):
               try:
                   web.find_element_by_id('ctl00_ContentPlaceHolder1_rdoATot_Count_0').click()
                   time.sleep(random.randrange(1, 5, 1))
-                  logging.info("setting ticket_1 amount is sucesses")
+                  logging.info("setting ticket amount is sucesses")
                   ## choice return ticket  count
               except :
-                      logging.info("setting ticket_1 amount is failed")
+                      logging.info("setting from ticket amount is failed")
+                      web.save_screenshot('set_from_ticket_amount_failed.png')
 
               try:
                     web.find_element_by_id('ctl00_ContentPlaceHolder1_rdoBTot_Count_0').click()
                     time.sleep(random.randrange(1, 5, 1))
-                    logging.info("setting ticket_2 amount is sucesses")
+                    logging.info("setting return ticket amount is sucesses")
 
               except :
-                       logging.info("setting ticket_2 amount is failed")
+                      logging.info("setting return ticket amount is failed")
+                      web.save_screenshot('set_return_ticket_failed.png')
 
               ### finshed book bus ticket
               try :
                    step4_click = web.find_element_by_id("ctl00_ContentPlaceHolder1_btnStep4_OK")
                    step4_click.click()
                    time.sleep(random.randrange(3, 5, 1))
-                   logging.info("step4_click book  ticket  is success")
+                   logging.info("step4_click booking  ticket  is success")
 
               except :
                       logging.info("step4_click book  ticket btn is failed")
+                      web.save_screenshot('booking_ticket_failed.png')
                       break
 
               ### step 5 payment keyin ticket num
@@ -438,6 +469,7 @@ for u_num in range(len(myusername_list)):
 
               except:
                      logging.info("step5_click payment btn is faild")
+                      web.save_screenshot('payment_failed.png')
                      break
       
       else : 
