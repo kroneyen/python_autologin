@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 ## chromedrive 2.32
-###20190128 adding customzied date funtion check_sys_date 
+###20190128 adding customzied date funtion Check_sys_date 
 
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
@@ -109,7 +109,7 @@ def get_option_num(soup,tb_id,time) :
 
 
 ### execute python with sys argv 
-def check_sys_date(s_day_from , s_day_return) :
+def Check_sys_date(s_day_from , s_day_return) :
     import sys
     try :
           s_day_from = sys.argv[1]
@@ -172,7 +172,7 @@ display.start()
 #myusername_list , mypassword_list , ticket_num  , seat_list = get_config() ## get loging user && pwd
 myusername_list , mypassword_list , ticket_num  , seat_list = get_redis_data() ## get loging user && pwd form redis
 ## customize booking date
-day_from , day_return = check_sys_date(None,None)
+day_from , day_return = Check_sys_date(None,None)
 
 ## mutiple user booking
 for u_num in range(len(myusername_list)):
@@ -256,7 +256,7 @@ for u_num in range(len(myusername_list)):
            logger_time_return.info("Search Return Time choose is success")
       except :
               logger_time_return.info("Search Return Time choose is failed")
-              web.save_screenshot('Search ReturnTime_failed.png')
+              web.save_screenshot('Search_ReturnTime_failed.png')
               time.sleep(random.randrange(1, 3, 1))
               break
       ### search time table button
@@ -295,7 +295,7 @@ for u_num in range(len(myusername_list)):
       except:
             logger_f_o_time=logging.getLogger(f_o_time)
             logger_f_o_time.info("step3_click_1 check from time table  is failed")
-            web.save_screenshot('check_from_time_failed.png')
+            web.save_screenshot('Check_from_time_failed.png')
             #break
 
       ## check return time table
@@ -313,7 +313,7 @@ for u_num in range(len(myusername_list)):
       except:
             logger_r_o_time=logging.getLogger(r_o_time)
             logger_r_o_time.info("step3_click_2 check return time table is failed")
-            web.save_screenshot('check_return_time_failed.png')
+            web.save_screenshot('Check_return_time_failed.png')
             #break
       ### check time table button
       try:
@@ -349,7 +349,7 @@ for u_num in range(len(myusername_list)):
                        j = j+1
                        if j >= len(seat_list):
                           logging.info("choice seat_from seat is full")
-                          web.save_screenshot('seat_from_full.png')
+                          web.save_screenshot('Seat_from_full.png')
                           break  ### set is full 
 
 
@@ -367,7 +367,7 @@ for u_num in range(len(myusername_list)):
                        k = k+1
                        if k >= len(seat_list):
                           logging.info("choice seat_return seat is full")
-                          web.save_screenshot('seat_return_full.png')
+                          web.save_screenshot('Seat_return_full.png')
                           break
            ##  choice seat is all done
 
@@ -385,7 +385,7 @@ for u_num in range(len(myusername_list)):
                   ## choice return ticket  count
               except :
                       logging.info("setting from ticket amount is failed")
-                      web.save_screenshot('set_from_ticket_amount_failed.png')
+                      web.save_screenshot('Set_from_ticket_amount_failed.png')
 
               try:
                     web.find_element_by_id('ctl00_ContentPlaceHolder1_rdoBTot_Count_0').click()
@@ -394,7 +394,7 @@ for u_num in range(len(myusername_list)):
 
               except :
                       logging.info("setting return ticket amount is failed")
-                      web.save_screenshot('set_return_ticket_failed.png')
+                      web.save_screenshot('Set_return_ticket_failed.png')
 
               ### finshed book bus ticket
               try :
@@ -405,7 +405,7 @@ for u_num in range(len(myusername_list)):
 
               except :
                       logging.info("step4_click book  ticket btn is failed")
-                      web.save_screenshot('booking_ticket_failed.png')
+                      web.save_screenshot('Booking_ticket_failed.png')
                       break
 
               ### step 5 payment keyin ticket num
@@ -469,7 +469,7 @@ for u_num in range(len(myusername_list)):
 
               except:
                      logging.info("step5_click payment btn is faild")
-                      web.save_screenshot('payment_failed.png')
+                     web.save_screenshot('Payment_failed.png')
                      break
       
       else : 

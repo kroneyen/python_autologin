@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 ## chromedrive 2.32
+###20190527 adding  attachmnet files with png  
 
 def send_email(subject, body):
     import smtplib
@@ -10,6 +11,7 @@ def send_email(subject, body):
     #import configparser
     #import ast
     import redis
+    import os
     """
     config = configparser.ConfigParser()
     config.read('config.ini')
@@ -33,8 +35,31 @@ def send_email(subject, body):
     msgText = MIMEText(body,'plain','utf-8')   ## mail body of chinese , setting harset utf8
     msg = MIMEMultipart()  ## merge mail  multiple part 
     msg['Subject'] = subject
+#    msg.attach(msgText)
+
+    attachments = []
+    #get folder file for .png
+    items = os.listdir(".")  ## os.listdir (path)  
+    for names in items : 
+      if  names.endswith(".png") : ##find out * '.png' file
+          
+          attachments.append(names)
+
+    for file in attachments : 
+        try:
+            with open(file,'rb') as fp :    
+                 att = MIMEText(open(file, 'rb').read(), 'base64', 'utf-8') ## attachemnt content of utf8
+                 att["Content-Type"] = 'application/octet-stream'
+                 att["Content-Disposition"] = 'attachment;filename="' + file + '"'  ## attachment with file name
+                 msg.attach(att)
+
+        except :
+                if __name__ == '__main__':
+                  print('attachemnt is failed')
+        
+
     msg.attach(msgText)
-     
+
     try:
         server = smtplib.SMTP("smtp.gmail.com", 587)
         #server.set_debuglevel(1)
