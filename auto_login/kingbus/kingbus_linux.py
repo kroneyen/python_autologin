@@ -95,9 +95,11 @@ def get_option_num(soup,tb_id,time) :
   for _tr_style in table_id.find_all('tr',{'style':re.compile('^color:Black')}):  ## find tr_style  of 3
       _tr_style_list.append(_tr_style)
 
+
   for _td_list in _tr_style_list :
+      _td_resverve = _td_list.find('td',{'align':re.compile('right')}).string  ## find resverve num
       for _td in _td_list.find_all('td',{'align':re.compile('center')}) :   ## find td string match time
-          if _td.string == time:
+          if _td.string == time and int(_td_resverve) > 0 :  ## check time & resverve free
             j =1
             break
       if j == 0 and num <5:
@@ -281,7 +283,7 @@ for u_num in range(len(myusername_list)):
       f_o_num , f_o_time =get_option_num(soup,'ctl00_ContentPlaceHolder1_grdAList','18:55     ')
 
       if f_o_num == 5 : ### check without time at 18:55
-             f_o_num , f_o_time=get_option_num(soup,'ctl00_ContentPlaceHolder1_grdAList','18:45     ')
+             f_o_num , f_o_time=get_option_num(soup,'ctl00_ContentPlaceHolder1_grdAList','18:45     ') 
 
       f_condi="//*[@id='ctl00_ContentPlaceHolder1_grdAList']/tbody/tr["+ str(f_o_num) +"]/td[2]/input"
 
@@ -492,7 +494,7 @@ body = ''
 try:
     with open('kingbus.log') as fp:
       data = fp.readlines()
-      for i in data[-22:]:
+      for i in data[-26:]:
           body  = body + i
 
 finally:
