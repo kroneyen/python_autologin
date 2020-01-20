@@ -162,11 +162,13 @@ display.stop()
 
      ### read for log last 5 line of mail body
 body = ''
+log_date = datetime.date.today().strftime("%Y-%m-%d")
 try:
-     with open('no_ip.log') as fp:
+    with open('no_ip.log') as fp:
       data = fp.readlines()
-      for i in data[-10:]:
-          body  = body + i
+      for i in data[-100:]:
+          if log_date in i:  ## read only  today log 
+             body  = body + i
 
 finally:
          fp.close()

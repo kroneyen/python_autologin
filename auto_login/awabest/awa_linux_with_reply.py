@@ -368,12 +368,14 @@ display.stop()
 
 if today_week == '1' :
      ### read for log last 47 line of mail body
-     body = '' 
+     body = ''
+     log_date = datetime.date.today().strftime("%Y-%m-%d")
      try:
-             with open('awa_login_with_reply.log') as fp:
-              data = fp.readlines()
-              for i in data[-22:]:
-               body  = body + i
+          with open('kingbus.log') as fp:
+            data = fp.readlines()
+            for i in data[-100:]:
+              if log_date in i:  ## read only  today log 
+                  body  = body + i
      
      finally:
          fp.close()
