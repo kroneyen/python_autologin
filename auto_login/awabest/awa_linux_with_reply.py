@@ -371,7 +371,7 @@ if today_week == '1' :
      body = ''
      log_date = datetime.date.today().strftime("%Y-%m-%d")
      try:
-          with open('kingbus.log') as fp:
+          with open('awa_login_with_reply.log') as fp:
             data = fp.readlines()
             for i in data[-100:]:
               if log_date in i:  ## read only  today log 
