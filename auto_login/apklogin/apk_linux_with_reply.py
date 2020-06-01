@@ -34,7 +34,8 @@ logging.info(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
 url="https://apk.tw/forum.php"
 short_url='https://apk.tw/'
 url2="https://apk.tw/home.php?mod=task&do=view&id=7" ##user_task_page of week
-bt_hd_url="https://apk.tw/forum-883-" ##BT HD page
+#bt_hd_url="https://apk.tw/forum-883-" ##BT HD page
+bt_hd_url="https://apk.tw/forum-1510-" ##BT HD page
 #bt_hd_url="https://apk.tw/forum-883-1.html" ##BT HD page
 #https://apk.tw/thread-884337-1-1.html
 url_credit = 'https://apk.tw/home.php?mod=spacecp&ac=credit'
@@ -248,13 +249,15 @@ def myreply_history(myusername,myreply_history_url,log_file_key):
 
     return all_page_myreply_tids
     """
-    try :## get  my history tid list from redis
+    try :### get  my history tid list from redis
          all_page_myreply_tids = str_split_2(myreply_history_list)
          for sstr in all_page_myreply_tids :
              r.rpush(str(log_file_key),str(sstr)) ## first time redis insert key(log_file) values(tid=xxxxx)
          logger = logging.getLogger(myusername)
-         logger.info("first time get myreply history page all done !!")
-
+         if len(all_page_myreply_tids) > 0 :
+            logger.info("first time get myreply history page all done !!")
+         else :
+            logger.info("myreply history page is empty !!")
 
     except :
              logger = logging.getLogger(myusername)
@@ -339,25 +342,32 @@ def get_post_message(auto_link_str):
     while 1 :
              
              web.get(auto_link_str)
+             time.sleep(random.randrange(2, 5, 1))
              soup = BeautifulSoup(web.page_source, "html.parser")
+             #if page_num = 1 : 
+             #   page_num_text = soup.find('a',class_='last').get('href') ### find last page :thread-921412-25-1.html
+             #   page_last_num=page_num_text.split("-", -1)[2]
              postlist = soup.find('div',{'id':re.compile('postlist')})
              for td_t_f in postlist.find_all('td',class_="t_f"):
-               pp.append(td_t_f.get_text()) ## get post text
+               pp.append(td_t_f.get_text()) ## get post text for each page
              ### next post page
              try :
-                   WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, "nxt")))
-                   time.sleep(random.randrange(2, 5, 1))
+                   WebDriverWait(web, 20).until(EC.element_to_be_clickable((By.CLASS_NAME, "nxt")))
+                   time.sleep(random.randrange(5, 10, 1))
                    page_num = page_num + 1
                    auto_link_str = auto_link_str.replace("-" + str(page_num - 1)+"-1", "-" + str(page_num)+"-1", 1) ## replace https://apk.tw/thread-903419-XX-1.html
              except :
                      break
-
+             
+             #print('auto_link_str:' ,auto_link_str)
+    #print('pp:',pp)
     return pp[random.randrange(1,len(pp),1)]  ## random get reply text
 
 ### Login User Page
 ## get user & pwd 
 #myusername_list , mypassword_list , uid_list = get_config() ## get loging user && pwd 
 myusername_list , mypassword_list , uid_list = get_redis_data()
+#print('myusername_list:',myusername_list)
 
 for num in range(len(myusername_list)):
     myusername=myusername_list[num] 
@@ -425,83 +435,86 @@ for num in range(len(myusername_list)):
     ### check auto_get_link_list avoid get_link result is 0
     while 1 :
              auto_get_link_list = []
-             rep_link_list,ran_rows = get_link(bt_hd_url,today_week) ### Get auto_reply_link
-             chk_link_list , log_file_tids=  chk_reply_tid(rep_link_list,all_page_lists_tids,ran_rows)  ## check auto_reply_link avoid is exist in  myreply_history
-             #non_rep_link_list = get_link(bt_hd_url,today_week) ### Get auto_reply_link          
-             #chk_link_list , log_file_tids=  chk_reply_tid(non_rep_link_list,all_page_lists_tids)  ## check auto_reply_link avoid is exist in  myreply_history
+             if len(all_page_lists_tids) > 0 : ### check page_lists_tids is exists
+                rep_link_list,ran_rows = get_link(bt_hd_url,today_week) ### Get auto_reply_link
+                chk_link_list , log_file_tids=  chk_reply_tid(rep_link_list,all_page_lists_tids,ran_rows)  ## check auto_reply_link avoid is exist in  myreply_history
+                if len(chk_link_list) > 0 : ### non-repetitive reply link more than the 1
+                   for str_link in chk_link_list :
+                       auto_get_link_list.append(short_url + str_link)  ### full link addr
+                   break
 
-             if len(chk_link_list) > 0 :  ### non-repetitive reply link more than the 1
-                for str_link in chk_link_list :
-                   auto_get_link_list.append(short_url + str_link)  ### full link addr
-                break
+             else : ### no lists_tids
+                   break
     ###  Auto_Reply   
     log_tids_num = 0
-    #with open(log_file,'a') as chkp:
-    for auto_link_str in auto_get_link_list :
+    try : 
+        for auto_link_str in auto_get_link_list :
+        
+                #auto_reply = reply_format() ##change to simple_reply
+                if log_tids_num == 0 :
+                      auto_reply = simple_reply_format()  ## Daily first reply
+                else : 
+                      auto_reply = get_post_message(auto_get_link_list[log_tids_num-1]) ## Daily second after reply ,get Previous msg
+                
+                ## threadlist page change
+                web.get(auto_link_str)
+                #logger = logging.getLogger(auto_link_str)
+                #logger.info("login reply page is success!!")
+                time.sleep(random.randrange(1, 5, 1))
+                web.find_element_by_id("fastpostmessage").clear()
+                web.find_element_by_id("fastpostmessage").send_keys(auto_reply)
+                fs_btn =web.find_element_by_id('fastpostsubmit')
+                time.sleep(random.randrange(3, 5, 1))
+                #logger.info(" reply fastpostmessage is success!!")
+                ### checkpost  
+                ActionChains(web).move_to_element(fs_btn).perform() ### mousemove btn
+                time.sleep(random.randrange(2, 5, 1))           
+                logger_link = logging.getLogger(auto_link_str)    
+                ### for checkpost
+                try :
+                     ### display checkpost 
+                     soup = BeautifulSoup(web.page_source , "html.parser")
+                     seccheck_form = soup.find('div',{'id':re.compile('seccheck_fastpost')})
+                     ### get anwser 
+                     qa = str(seccheck_form.find('div',{'class':re.compile('p_pop p_opt')}))
+                     ### spliting anwser sting   
+                     ans = str(get_ans(qa))
+                     ans_form = web.find_element_by_name('secanswer')
+                     time.sleep(random.randrange(2, 5, 1))
+                     ### post answer  to  checkpost
+                     ActionChains(web).move_to_element(ans_form).send_keys_to_element(ans_form,ans).click(fs_btn).perform()
+                     #ActionChains(web).click(fs_btn).perform()
+                     time.sleep(random.randrange(3, 5, 1))
+                     ### write tid to log_file 
+                     r.rpush(str(log_file_key),str(log_file_tids[log_tids_num]))
+                     log_tids_num = log_tids_num +1 ##@ trun tid next 
+                     logger_link.info("reply with checkpost is successed ,waiting next link !!")
+                     time.sleep(random.randrange(10, 30, 1))
+                
+                
+                except :
+                        ### non checkpost
+                        try :
+                             ActionChains(web).click(fs_btn).perform()
+                             time.sleep(random.randrange(3, 5, 1))
+                             r.rpush(str(log_file_key),str(log_file_tids[log_tids_num]))
+                             log_tids_num = log_tids_num +1 ##@ trun tid next 
+                             logger_link.info("reply is successed ,waiting next link !!")
+                             time.sleep(random.randrange(10, 30, 1))
+                        
+                        except :
+                                logger_link.info("reply is failed!!")
+                                break
 
-            #auto_reply = reply_format() ##change to simple_reply
-            if log_tids_num == 0 :
-                  auto_reply = simple_reply_format()
-            else : 
-                  auto_reply = get_post_message(auto_get_link_list[log_tids_num-1])
-            
-            ## threadlist page change
-            web.get(auto_link_str)
-            #logger = logging.getLogger(auto_link_str)
-            #logger.info("login reply page is success!!")
-            time.sleep(random.randrange(1, 5, 1))
-            web.find_element_by_id("fastpostmessage").clear()
-            web.find_element_by_id("fastpostmessage").send_keys(auto_reply)
-            fs_btn =web.find_element_by_id('fastpostsubmit')
-            time.sleep(random.randrange(3, 5, 1))
-            #logger.info(" reply fastpostmessage is success!!")
-            ### checkpost  
-            ActionChains(web).move_to_element(fs_btn).perform() ### mousemove btn
-            time.sleep(random.randrange(2, 5, 1))           
-            logger_link = logging.getLogger(auto_link_str)    
-            ### for checkpost
-            try :
-                 ### display checkpost 
-                 soup = BeautifulSoup(web.page_source , "html.parser")
-                 seccheck_form = soup.find('div',{'id':re.compile('seccheck_fastpost')})
-                 ### get anwser 
-                 qa = str(seccheck_form.find('div',{'class':re.compile('p_pop p_opt')}))
-                 ### spliting anwser sting   
-                 ans = str(get_ans(qa))
-                 ans_form = web.find_element_by_name('secanswer')
-                 time.sleep(random.randrange(2, 5, 1))
-                 ### post answer  to  checkpost
-                 ActionChains(web).move_to_element(ans_form).send_keys_to_element(ans_form,ans).click(fs_btn).perform()
-                 #ActionChains(web).click(fs_btn).perform()
-                 time.sleep(random.randrange(3, 5, 1))
-                 ### write tid to log_file 
-                 #chkp.write(log_file_tids[log_tids_num] + '\n')
-                 r.rpush(str(log_file_key),str(log_file_tids[log_tids_num]))
-                 log_tids_num = log_tids_num +1 ##@ trun tid next 
-                 logger_link.info("reply with checkpost is successed ,waiting next link !!")
-                 time.sleep(random.randrange(10, 30, 1))
-            
-            
-            except :
-                    ### non checkpost
-                    try :
-                         ActionChains(web).click(fs_btn).perform()
-                         time.sleep(random.randrange(3, 5, 1))
-                         r.rpush(str(log_file_key),str(log_file_tids[log_tids_num]))
-                         log_tids_num = log_tids_num +1 ##@ trun tid next 
-                         logger_link.info("reply is successed ,waiting next link !!")
-                         time.sleep(random.randrange(10, 30, 1))
-                    
-                    except :
-                            logger_link.info("reply is failed!!")
-                            break
-
-    #chkp.close()
-    logger = logging.getLogger(myusername)
-    logger.info("reply all done!!")
-    time.sleep(random.randrange(1, 5, 1))
+        logger = logging.getLogger(myusername)
+        logger.info("reply all done!!")
+    except : 
+             logger = logging.getLogger(myusername)
+             logger.info("NO Permission Reply!!")
 
 
+
+    time.sleep(random.randrange(1, 5, 1)) ### finished auto reply 
     ### Got user task of 7 days
     ###  Login user task
     web.get(url2)
