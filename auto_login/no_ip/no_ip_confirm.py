@@ -150,7 +150,7 @@ for num in range(len(myusername_list)):
              time.sleep(random.randrange(5, 10, 1))
              try : ### After check Modify status is exiest
                   WebDriverWait(web, 10).until(EC.presence_of_element_located((By.XPATH,chk_down)))
-                  logger.info("domain %s confirm is successed!!" % domain_idx)
+                  logger.info("domain %s confirm is successed!!" % mark_word(domain_idx))
 
              except :
                logger.info("domain $s confirm is failed!!" % mark_word(domain_idx))
