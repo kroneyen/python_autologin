@@ -90,6 +90,19 @@ def get_option_num(soup,tb_id,_domain) :
 
 
 
+### word replace of '*'
+def mark_word(word):
+    str = ''
+    for nw in range(len(word)) :
+       if nw >0 and  nw < (len(word) -8) :
+          str = str + '*'
+       else :
+          str = str + word[nw]
+
+    return str
+
+
+
 ## get user & pwd 
 ## myusername_list , mypassword_list , domain_list = get_config() ## get loging user && pwd 
 myusername_list , mypassword_list , domain_list = get_redis_data() ## get loging user && pwd 
@@ -131,19 +144,19 @@ for num in range(len(myusername_list)):
     #### web get expire hostname login
     web.get(hostname_url)
     time.sleep(random.randrange(5, 10, 1))
-    logger = logging.getLogger(myusername)
+    logger = logging.getLogger(mark_word(myusername))
     logger.info("loging account hostname page is successed!!")
     
     soup = BeautifulSoup(web.page_source , "html.parser")
     #print('hostname_url:',soup)    
-
+    pass_domain_list = []
     ### domain confirm botton check 
     for domain_idx in domain_list :
         condi = ''
         o_num  =get_option_num(soup,'table no-margin-bv table-stack',domain_idx)
         condi= '//*[@id="host-panel"]/table/tbody/tr['+ str(o_num) +']/td[5]/button[contains(.,"Confirm")]'
         chk_down= '//*[@id="host-panel"]/table/tbody/tr['+ str(o_num) +']/td[5]/button[contains(.,"Modify")]'
-        logger = logging.getLogger(domain_idx)
+        logger = logging.getLogger(mark_word(domain_idx))
         try :
              btn_confirm = WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.XPATH,condi)))
              btn_confirm.click()
@@ -153,13 +166,13 @@ for num in range(len(myusername_list)):
                   logger.info("domain %s confirm is successed!!" % domain_idx)
 
              except :
-               logger.info("domain $s confirm is failed!!" % domain_idx)
+               logger.info("domain $s confirm is failed!!" % mark_word(domain_idx))
+               pass_domain_list.append(domain_idx)
 
         except :
                 WebDriverWait(web, 10).until(EC.presence_of_element_located((By.XPATH,chk_down)))
-                logger.info("domain %s confirm is pass !!" % domain_idx)
-
-
+                logger.info("domain %s confirm is pass !!" % mark_word(domain_idx))
+                pass_domain_list.append(mark_word(domain_idx))
 
         ### wait next domain btn check 
         logging.info("waiting for next  domain!!")
@@ -176,7 +189,15 @@ for num in range(len(myusername_list)):
           break
 
 time.sleep(random.randrange(1, 10, 1))
-logging.info("user all done!!")
+
+if len(pass_domain_list) == 0 :
+
+   logging.info("user Confirm  done!!")
+
+else : 
+   logging.info("user all pass!!")
+
+
 
 #web.quit()
 display.stop()
