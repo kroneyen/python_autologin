@@ -128,19 +128,6 @@ for num in range(len(myusername_list)):
     ActionChains(web).move_to_element(loginForm).send_keys_to_element(fromname, myusername).pause(random.randrange(1, 3, 1)).send_keys_to_element(frompwd, mypassword).pause(random.randrange(1, 3, 1)).pause(random.randrange(1, 3, 1)).click(click_btn).perform()
     time.sleep(random.randrange(5, 10, 1))
    
-    """ 
-    try:
-        ActionChains(web).move_to_element(loginForm).send_keys_to_element(fromname, myusername).send_keys_to_element(frompwd, mypassword).click(click_btn).perform()    
-        logger = logging.getLogger(myusername)
-        logger.info("login botton is success")
-        time.sleep(random.randrange(5, 10, 1))
-   
-    except : 
-        logger = logging.getLogger(myusername)
-        logger.info("login botton is failed")
-        time.sleep(random.randrange(5, 10, 1))
-        break
-    """
     #### web get expire hostname login
     web.get(hostname_url)
     time.sleep(random.randrange(5, 10, 1))
