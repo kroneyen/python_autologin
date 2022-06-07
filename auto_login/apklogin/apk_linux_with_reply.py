@@ -173,7 +173,8 @@ def simple_reply_format():
     '畫質還不錯,感謝大大的分享.',
     '我很喜歡的劇情、精彩的片段 , 謝謝分享',
     '感覺畫質還不錯,不知道翻譯如何？ 感謝大大的分享!',
-    '劇情真特別 ~ 感謝大大辛苦 下載來觀賞']
+    '劇情真特別 ~ 感謝大大辛苦 下載來觀賞',
+    '很吸引人的主題, 非常感謝版主 欣賞去']
     
     return  feedback[random.randrange(1, len(feedback),1 )]  ##return reply format
 
@@ -188,9 +189,10 @@ def get_link(ori_bt_hd_url,today_week):
             ran_rows = random.randrange(2,5,1) ## get non-repetitive random 2~5 rows from get_link_list
     else :
             ran_rows = random.randrange(1,3,1) ## get non-repetitive random 2~5 rows from get_link_list
-    ## got page list random page num 
-    page_num_list=random.sample(list(range(5,20)), k=ran_rows)
-
+    ## got page list random page num 40 pages 
+    page_num_list=random.sample(range(5,40), k=ran_rows)
+    #page_num_list=random.sample(list(range(5,40)), k=ran_rows)
+    ### page_num_list=random.sample(range(5,40), k=ran_rows) for 3.7 
     ### each page got  ran_rows
     for page_num in page_num_list :
         bt_hd_url=ori_bt_hd_url+str(page_num)+'.html'  ## apk BT_URL page format
@@ -269,10 +271,11 @@ def myreply_history(myusername,myreply_history_url,log_file_key):
 
 ### Split HD tid
 ### EXP: thread-894449-1-1.html
+### fix bug "thread-1002967" split 
 def str_split_1(sttr_list) :
    str_split_list=[]
    for sttr in sttr_list :
-       row_str_split=sttr.split('-1')
+       row_str_split=sttr.split('-1-1.html')
        str_split_list.append(row_str_split[0])
    return str_split_list
 
@@ -281,7 +284,7 @@ def str_split_1(sttr_list) :
 def str_split_2(sttr_list) :
    str_split_list=[]
    for sttr in sttr_list :
-       row_str_split=sttr.split('-1')
+       row_str_split=sttr.split('-1-1.html')
        str_split_list.append(row_str_split[0]) ### thread-879396
    return str_split_list
 
@@ -298,12 +301,14 @@ def str_split_3(sttr_list) :
 def chk_reply_tid(rep_link_list,all_page_lists_tids,ran_rows) :
     link_str = []
     log_file_tids = []
-    random.shuffle(rep_link_list) ## random list seq
+    #random.shuffle(rep_link_list) ## random list seq
+    random.sample(rep_link_list, k=ran_rows) ##random list seq for fix bug
+
     chk_rep_tid_list = str_split_1(rep_link_list)
     chk_myreply_history_tid_list = all_page_lists_tids
     ### check tid not in exist  myreply_history lists
     k=0
-    ### check exclude on all_page_lists_tids link list
+    ### check exclude on all_page_lists_tids link list 
     for elem in chk_rep_tid_list :
         if elem not in chk_myreply_history_tid_list:  ### not in the lists , will be write into log file
              if len(log_file_tids) < ran_rows:
@@ -386,30 +391,34 @@ for num in range(len(myusername_list)):
     fromname   = web.find_element_by_css_selector(".mousebox  #ls_username")                                                                                  
     frompwd   = web.find_element_by_css_selector(".mousebox #ls_password")                                                                                    
     click_btn =web.find_element_by_xpath("//*[@id='lsform']/div/div/button/em")                                                                               
+    time.sleep(random.randrange(5, 10, 1))
     #click_btn =web.find_element_by_xpath("//button[contains(@class, 'pn vm')]")                                                                              
     ### mouse move to element loging
     try :
          ActionChains(web).move_to_element(loginForm).send_keys_to_element(fromname,myusername).send_keys_to_element(frompwd,mypassword).click(click_btn).perform()
          logger = logging.getLogger(myusername)
          logger.info("login botton is success")
-         time.sleep(random.randrange(5, 10, 1))
+         time.sleep(random.randrange(25, 30, 1))
          
     except :  
             logger = logging.getLogger(myusername)
-            logger.info("login botton is success")
+            logger.info("login botton is failed")
+            time.sleep(random.randrange(25, 30, 1))
             break
 
     ### Got signature 
     try:
-        signature = WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.ID,"my_amupper")))
+        signature = WebDriverWait(web, 20).until(EC.element_to_be_clickable((By.ID,"my_amupper")))
+        #signature = web.find_element_by_id('my_amupper').click()
         signature.click()
         logger = logging.getLogger(myusername)
         logger.info("signature is successed!!")
+        
     except:
           logger = logging.getLogger(myusername)
           logger.info("signature is not exist!!")
 
-    time.sleep(random.randrange(3, 10, 1))
+    time.sleep(random.randrange(5, 10, 1))
 
 
     ### try to open myreply log_file , if is exist 
@@ -435,8 +444,10 @@ for num in range(len(myusername_list)):
     ### check auto_get_link_list avoid get_link result is 0
     while 1 :
              auto_get_link_list = []
+             chk_link_list = []
+             rep_link_list =[]
              if len(all_page_lists_tids) > 0 : ### check page_lists_tids is exists
-                rep_link_list,ran_rows = get_link(bt_hd_url,today_week) ### Get auto_reply_link
+                rep_link_list, ran_rows = get_link(bt_hd_url,today_week) ### Get auto_reply_link
                 chk_link_list , log_file_tids=  chk_reply_tid(rep_link_list,all_page_lists_tids,ran_rows)  ## check auto_reply_link avoid is exist in  myreply_history
                 if len(chk_link_list) > 0 : ### non-repetitive reply link more than the 1
                    for str_link in chk_link_list :
@@ -447,7 +458,7 @@ for num in range(len(myusername_list)):
                    break
     ###  Auto_Reply   
     log_tids_num = 0
-    try : 
+    if len(auto_get_link_list) > 0 : 
         for auto_link_str in auto_get_link_list :
         
                 #auto_reply = reply_format() ##change to simple_reply
@@ -508,7 +519,8 @@ for num in range(len(myusername_list)):
 
         logger = logging.getLogger(myusername)
         logger.info("reply all done!!")
-    except : 
+
+    else: 
              logger = logging.getLogger(myusername)
              logger.info("NO Permission Reply!!")
 
