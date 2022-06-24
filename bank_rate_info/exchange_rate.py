@@ -79,19 +79,40 @@ def drop_mongo_db(_db,_collection):
        collection.drop()
 
 
-"""
-def read_mongo_db(_db,_collection,dicct):
+def read_mongo_db(_db,_collection,dicct,_columns):
     db = c[_db] ## database
     collection = db[_collection] ## collection 
     #return collection.find({_code:_qq},{"code":1,"name":0,"_id":0,"last_modify":0})
-    return collection.find(dicct,{"code": 1,"name": 1,"_id": 0})
-"""
+    return collection.find(dicct,_columns)
+
+def read_mongo_db_sort(_db,_collection,dicct,_columns):
+    db = c[_db] ## database
+    collection = db[_collection] ## collection 
+    #return collection.find({_code:_qq},{"code":1,"name":0,"_id":0,"last_modify":0})
+    return collection.find(dicct).sort(_columns).liimit(1)
+
 
 
 def read_aggregate_mongo(_db,_collection,dicct):
     db = c[_db] ## database
     collection = db[_collection] ## collection 
     return collection.aggregate(dicct)
+
+
+### mongodb atlas connection
+conn_user = get_redis_data('mongodb_user',"hget","user",'NULL')
+conn_pwd = get_redis_data('mongodb_user',"hget","pwd",'NULL')
+
+mongourl = 'mongodb+srv://' + conn_user +':' + conn_pwd +'@cluster0.47rpi.gcp.mongodb.net/myFirstDatabase?retryWrites=true&w=majority'
+conn = MongoClient(mongourl)
+
+
+def atlas_read_mongo_db(_db,_collection,dicct,_columns):
+    db = conn[_db] ## database
+    collection = db[_collection] ## collection 
+    #return collection.find({_code:_qq},{"code":1,"name":0,"_id":0,"last_modify":0})
+    return collection.find(dicct,_columns)
+
 
 
 
@@ -118,25 +139,54 @@ def get_exchange_rate() :
   df['code'] = currency_code
 
   ### get redis data
-  currency_list=[]
-  currency_price=[]
+  #code_list=[]
+  #bank_rate_sell_list=[]
   daily_currency_low =[]
-  for curr_idx in  get_redis_data('currency','hkeys','NULL','NULL') :
-     currency_price.append(get_redis_data('currency','hget',curr_idx,'NULL'))
-     daily_currency_low.append(get_redis_data('daily_currency_low','hget',curr_idx,'NULL'))
-     currency_list.append(curr_idx)
+  code_list = []
+  bank_rate_sell_list=[]  
+
+  
+     ## atlas mongo
+  _db ='bankrate'
+  _collection='target_currency'
+  dicct={}
+  _columns={"_id":0,"last_modify":0}
+
+  ### atlas mongo 
+  try : 
+          mongo_mydoc = atlas_read_mongo_db(_db,_collection,dicct,_columns)
+  ##local mongo
+  except : 
+          mongo_mydoc = read_mongo_db(_db,_collection,dicct,_columns)
+
+  ## chk get mongo data   
+  if mongo_mydoc.count() >0 :
+        #last_day = read_mongo_db_sort(_db,'daily_currency',dicct,{"last_modify":-1}) 
+
+        for idx in mongo_mydoc :
+            code_list.append(idx.get('code'))
+            bank_rate_sell_list.append(idx.get('bank_rate_sell'))
+            #daily_currency_low.qppend(read_mongo_db(_db,'daily_currency',{},{}))
+            daily_currency_low.append(get_redis_data('daily_currency_low','hget',idx.get('code'),'NULL')) ## values get from local redis
+
+
+  else :
+        for curr_idx in  get_redis_data('currency','hkeys','NULL','NULL') :
+            bank_rate_sell_list.append(get_redis_data('currency','hget',curr_idx,'NULL'))
+            daily_currency_low.append(get_redis_data('daily_currency_low','hget',curr_idx,'NULL'))
+            code_list.append(curr_idx)
+  
 
   #current_list = get_redis_data('current_list','lrange',0,-1)
   #current_price = get_redis_data('current_price','lrange',0,-1)
   
   df = df.iloc[:,[18,19,1,2,9,10]] ##name ,code 現金 本行買入/賣出  , 即期  買入/賣出
   df.columns= llist(len(df.columns))
-  df = df[df[1].isin(currency_list)] ##比對 
+  df = df[df[1].isin(code_list)] ##比對 
   df = df.astype({2:'float',3:'float',4:'float',5:'float'})
   df.columns = ['name','code', '現金買','現金賣','即期買', '即期賣']  
-  df['buy_rate'] = currency_price ## list_6
+  df['buy_rate'] = bank_rate_sell_list ## list_6
   #df['daily_currency_low'] = daily_currency_low  ##list_7
-  
   ###  insert into mongo 
   ori =  datetime.datetime.strptime(get_updatetime, "%Y/%m/%d %H:%M")
   format_str = datetime.datetime.strftime(ori, "%Y%m%d")
@@ -148,6 +198,7 @@ def get_exchange_rate() :
   
   drop_mongo_db('bankrate',d_collections) 
 
+  #print(df.info())
   ### insert mongo rate data 
   
   _values_list =[]
@@ -160,16 +211,15 @@ def get_exchange_rate() :
                 'last_modify':datetime.datetime.now() }
 
     _values_list.append(_values)
- 
   insert_mongo_db('bankrate',_collections,_values_list)
 
   ### compare buy price 
   dfs = pd.DataFrame()
   dfs_low = pd.DataFrame()
 
-  for idx in range(len(currency_list)) :
-    mark_1 = df['現金賣'] < float(currency_price[idx])
-    mark_2 = df['code'] == currency_list[idx]
+  for idx in range(len(code_list)) :
+    mark_1 = df['現金賣'] < float(bank_rate_sell_list[idx])
+    mark_2 = df['code'] == code_list[idx]
     mark_3 = df['現金賣'] < float(daily_currency_low[idx])
     df_mark = df[(mark_1 & mark_2)]
     df_low_mark = df[(mark_2 & mark_3)] 
@@ -213,7 +263,7 @@ def match_row_5 ( get_updatetime ,match_row,extend) :
    
 
 
-bank_close_time ='23:55:00'
+bank_close_time ='18:05:00'
 
 
 if not match_row.empty  :
