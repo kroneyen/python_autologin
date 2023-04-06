@@ -9,6 +9,8 @@ from bs4 import BeautifulSoup
 import redis
 import random
 from pymongo import MongoClient
+import re
+
 
 url = 'https://rate.bot.com.tw/xrt?Lang=zh-TW'
 
@@ -39,6 +41,9 @@ def get_redis_data(_key,_type,_field_1,_field_2):
     elif _type == "hget" :
        _list = r.hget(_key,_field_1)
 
+    elif _type == "hgetall" :
+       _list = r.hgetall(_key)
+
     elif _type == "hkeys" :
        _list = r.hkeys(_key)
 
@@ -51,6 +56,14 @@ def insert_redis_data(_key,_field_1,_values):
    
     r.hmset(_key,diic)
     
+
+def hmset_insert_redis_data(_key,dicct):
+
+    r.hmset(_key,dicct)
+
+
+def delete_redis_data(_key):
+    r.delete(_key)
 
 
 
@@ -99,6 +112,25 @@ def read_aggregate_mongo(_db,_collection,dicct):
     return collection.aggregate(dicct)
 
 
+def getCollectionNames_mongo (_db):
+    db = c[_db] ## database
+    return db.list_collection_names()
+
+
+def name_regex(values) : 
+    collection_list=[]
+    for idx in values : 
+      if  re.match( '^currency_rate',idx ) :
+        collection_list.append(idx)
+    return collection_list
+    
+
+
+
+
+
+
+
 ### mongodb atlas connection
 conn_user = get_redis_data('mongodb_user',"hget","user",'NULL')
 conn_pwd = get_redis_data('mongodb_user',"hget","pwd",'NULL')
@@ -137,16 +169,13 @@ def get_exchange_rate() :
   
   df['name']= currency_name
   df['code'] = currency_code
-
   ### get redis data
-  #code_list=[]
-  #bank_rate_sell_list=[]
   daily_currency_low =[]
   code_list = []
   bank_rate_sell_list=[]  
 
   
-     ## atlas mongo
+  ## atlas mongo
   _db ='bankrate'
   _collection='target_currency'
   dicct={}
@@ -155,27 +184,52 @@ def get_exchange_rate() :
   ### atlas mongo 
   try : 
           mongo_mydoc = atlas_read_mongo_db(_db,_collection,dicct,_columns)
+          
   ##local mongo
   except : 
           mongo_mydoc = read_mongo_db(_db,_collection,dicct,_columns)
 
+  mongo_mydoc_df = pd.DataFrame(list(mongo_mydoc))
   ## chk get mongo data   
-  if mongo_mydoc.count() >0 :
-        #last_day = read_mongo_db_sort(_db,'daily_currency',dicct,{"last_modify":-1}) 
-
+  if not mongo_mydoc_df.empty :
+        """
         for idx in mongo_mydoc :
             code_list.append(idx.get('code'))
             bank_rate_sell_list.append(idx.get('bank_rate_sell'))
             #daily_currency_low.qppend(read_mongo_db(_db,'daily_currency',{},{}))
-            daily_currency_low.append(get_redis_data('daily_currency_low','hget',idx.get('code'),'NULL')) ## values get from local redis
+            daily_currency_low.append(get_redis_data('daily_currency_low','hget',idx.get('code'),'NULL')) ## values get from local redi
+        """
+        code_list = list(mongo_mydoc_df['code'])
+        bank_rate_sell_list= list(mongo_mydoc_df['bank_rate_sell']) 
+        for idx in code_list : 
+            daily_currency_low.append(get_redis_data('daily_currency_low','hget',idx,'NULL')) ## values get from local redi      
 
-
-  else :
-        for curr_idx in  get_redis_data('currency','hkeys','NULL','NULL') :
-            bank_rate_sell_list.append(get_redis_data('currency','hget',curr_idx,'NULL'))
+        ##insert local mongo
+        local_mongo = read_mongo_db(_db,_collection,dicct,_columns)
+        local_mongo_df = pd.DataFrame(list(local_mongo))
+        chk_mongo = mongo_mydoc_df.equals(local_mongo_df)
+        ##insert local mongo & redis sync
+        if chk_mongo == False:
+           if not  mongo_mydoc_df.empty :
+              drop_mongo_db(_db,_collection)
+              records= mongo_mydoc_df.copy()
+              records['last_modify']= datetime.datetime.now()
+              records = records.to_dict(orient='records')
+              insert_mongo_db(_db,_collection,records)
+        
+              ##insert local redis
+              delete_redis_data('target_currency')
+              records = { k: v for k, v in zip(code_list, bank_rate_sell_list) }
+              hmset_insert_redis_data(_collection,records)
+  
+  else : ## get redis data 
+        for curr_idx in  get_redis_data('target_currency','hkeys','NULL','NULL') :
+            bank_rate_sell_list.append(get_redis_data('target_currency','hget',curr_idx,'NULL'))
             daily_currency_low.append(get_redis_data('daily_currency_low','hget',curr_idx,'NULL'))
             code_list.append(curr_idx)
   
+
+
 
   #current_list = get_redis_data('current_list','lrange',0,-1)
   #current_price = get_redis_data('current_price','lrange',0,-1)
@@ -187,18 +241,20 @@ def get_exchange_rate() :
   df.columns = ['name','code', '現金買','現金賣','即期買', '即期賣']  
   df['buy_rate'] = bank_rate_sell_list ## list_6
   #df['daily_currency_low'] = daily_currency_low  ##list_7
+
   ###  insert into mongo 
   ori =  datetime.datetime.strptime(get_updatetime, "%Y/%m/%d %H:%M")
   format_str = datetime.datetime.strftime(ori, "%Y%m%d")
-  del_format_str =  datetime.datetime.strftime(ori + datetime.timedelta(days = -1), "%Y%m%d") 
   _collections =  'currency_rate_' + format_str 
-  d_collections = 'currency_rate_' + del_format_str
-
   ### delete mongo collection for yesterday 
-  
-  drop_mongo_db('bankrate',d_collections) 
-
-  #print(df.info())
+  mydoc = getCollectionNames_mongo('bankrate') 
+  coll_doc =  name_regex(mydoc)
+  for idx in  coll_doc: 
+      ### 保留最後一個
+      if idx != _collections : 
+         drop_mongo_db('bankrate',idx)
+ 
+  #print(df)
   ### insert mongo rate data 
   
   _values_list =[]
@@ -261,14 +317,14 @@ def match_row_5 ( get_updatetime ,match_row,extend) :
                   time.sleep(random.randrange(1, 3, 1))
 
    
+#print("match_row:",match_row)
+#print("dfs_low:",dfs_low)
 
-
-bank_close_time ='18:05:00'
-
+bank_close_time ='17:55:00'
 
 if not match_row.empty  :
 
-          match_row_5(get_updatetime,match_row,"\n ")
+   match_row_5(get_updatetime,match_row,"\n ")
 
 elif not dfs_low.empty :
          for idx in range(len(dfs_low)) :
@@ -342,9 +398,10 @@ elif   time.strftime("%H:%M:%S", time.localtime()) > bank_close_time :
        if mongo_doc_count.empty  :
        
           insert_mongo_db('bankrate','daily_currency',_values_list)
+          match_row = match_row.iloc[:,[0,1,2,3]]
           match_row_5(get_updatetime,match_row,"\n ")
        
 
 else  :
-   print("%s currency is not match buy_price" % get_updatetime)
+   print("%s target_currency is not match buy_price" % get_updatetime)
    print(match_df)
