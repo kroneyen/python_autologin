@@ -135,12 +135,15 @@ def Check_sys_date(s_day_from , s_day_return) :
            sys.exit(1)
 
     if s_day_from == '0' :
-       day_from = datetime.datetime.strftime(datetime.date.today() + datetime.timedelta(days = 11),'%Y/%m/%d')  ## booking friday
+       
+       day_from = datetime.datetime.strftime(datetime.date.today() + datetime.timedelta(days = 11),'%Y/%m/%d')  ## booking at friday con job on 1
+       #day_from = datetime.datetime.strftime(datetime.date.today() + datetime.timedelta(days = 14),'%Y/%m/%d')  ## booking at friday   con job on 5
     else :
        day_from = s_day_from
 
     if s_day_return == '0' :
        day_return = datetime.datetime.strftime(datetime.date.today() + datetime.timedelta(days = 14),'%Y/%m/%d') ## booking next monday
+       #day_return = datetime.datetime.strftime(datetime.date.today() + datetime.timedelta(days = 17),'%Y/%m/%d') ## booking next at monday
     else :
        day_return = s_day_return
 
@@ -360,10 +363,12 @@ for u_num in range(len(myusername_list)):
              logger_time_from = logging.getLogger(time_from)
              try :
                   Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlAHour")).select_by_value(s_f_h)
-                  time.sleep(random.randrange(3, 5, 1))
+                  time.sleep(random.randrange(5, 10, 1))
                   Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlAMinute")).select_by_value(s_f_m)
-                  time.sleep(random.randrange(3, 5, 1))
+                  time.sleep(random.randrange(5, 10, 1))
                   logger_time_from.info("Search From Time choose is success")
+                  #web.save_screenshot('%s_from_time_table_choose.png' % mark_word(myusername_list[u_num]))
+
              except UnexpectedAlertPresentException:
                      #alert_sw = web.switch_to.alert
                      #alert_msg = alert_sw.text
@@ -378,10 +383,11 @@ for u_num in range(len(myusername_list)):
              logger_time_return = logging.getLogger(time_return)
              try :
                   Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlBHour")).select_by_value(s_r_h)
-                  time.sleep(random.randrange(3, 5, 1))
+                  time.sleep(random.randrange(5, 10, 1))
                   Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlBMinute")).select_by_value(s_r_m)
-                  time.sleep(random.randrange(3, 5, 1))
+                  time.sleep(random.randrange(5, 10, 1))
                   logger_time_return.info("Search Return Time choose is success")
+                  #web.save_screenshot('%s_return_time_table_choose.png' % mark_word(myusername_list[u_num]))
              except :
                      logger_time_return.info("Search Return Time choose is failed")
                      web.save_screenshot('%s_Search_ReturnTime_failed.png' % mark_word(myusername_list[u_num]))
@@ -390,8 +396,8 @@ for u_num in range(len(myusername_list)):
              ### search time table button
              
              try :
-                  WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.ID, "ctl00_ContentPlaceHolder1_btnStep2_OK"))).click()
-                  time.sleep(random.randrange(20, 30, 1))    ### waiting for 3 schdule table
+                  WebDriverWait(web, 30).until(EC.element_to_be_clickable((By.ID, "ctl00_ContentPlaceHolder1_btnStep2_OK"))).click()
+                  time.sleep(random.randrange(30, 40, 1))    ### waiting for 3 schdule table
                   logging.info("step2_next_click search time table   is success")
              
              except :
@@ -400,9 +406,22 @@ for u_num in range(len(myusername_list)):
                      time.sleep(random.randrange(1, 3, 1))
                      break
              
+             
+             time.sleep(random.randrange(30, 40, 1))    ### waiting for 3 schdule table
              ### step 3
              ### for get_option_num
-             soup = BeautifulSoup(web.page_source  , "html.parser")
+             #soup = BeautifulSoup(web.page_source  , "html.parser")
+             #### check time table is exists
+             try :
+                 soup = BeautifulSoup(web.page_source  , "html.parser")
+                 chk_grdAList = soup.find(id='ctl00_ContentPlaceHolder1_grdAList')
+                   
+                   
+             except :
+                    time.sleep(random.randrange(50, 60, 1))    ### waiting for 3 schdule table
+                    soup = BeautifulSoup(web.page_source  , "html.parser")
+                    chk_grdAList = soup.find(id='ctl00_ContentPlaceHolder1_grdAList')
+
              
              ## check from time table  1st: 18:55  , 2nd: 18:45 ,3rd : 19:15
              f_condi =''
@@ -410,30 +429,33 @@ for u_num in range(len(myusername_list)):
              f_o_num=5
              #from_time_list=['18:55     ','18:45     ','19:15     ']
              #from_time_list=['18:55     ','18:45     ']
-             while (list_n < len(b_f_time) and f_o_num ==5) :
-                         
+             #while (list_n < len(b_f_time) and f_o_num ==5) :
+             while (list_n < len(b_f_time) and f_o_num ==5 and chk_grdAList.get('id') != None) :
+            
                     f_o_num , f_o_time , f_o_num_0 = get_option_num(soup,'ctl00_ContentPlaceHolder1_grdAList',b_f_time[list_n])
                     #print (f_o_num , f_o_time , f_o_num_0)
                     list_n +=1
              
              if (f_o_num < 5) :
                     f_condi="//*[@id='ctl00_ContentPlaceHolder1_grdAList']/tbody/tr["+ str(f_o_num) +"]/td[2]/input"
+                    #print('f_condi_0:',f_condi)
              else : 
                     f_condi_0="//*[@id='ctl00_ContentPlaceHolder1_grdAList']/tbody/tr["+ str(f_o_num_0) +"]/td[2]/input"
-             
-             
+                    #print('f_condi_0:',f_condi_0)
+ 
              try :
                  from_botton = WebDriverWait(web, 30).until(EC.element_to_be_clickable((By.XPATH, f_condi)))
                  from_botton.click()
-                 time.sleep(random.randrange(5, 10, 1))
+                 time.sleep(random.randrange(10, 20, 1))
                  logger_f_o_time=logging.getLogger(f_o_time)
                  logger_f_o_time.info("step3_click_1 check from time table  is success")
+                 # web.save_screenshot('%s_Check_from_time_1.png' % mark_word(myusername_list[u_num]))
              
              except:
                    #f_condi="//*[@id='ctl00_ContentPlaceHolder1_grdAList']/tbody/tr["+ str(f_o_num_0) +"]/td[2]/input"
                    from_botton = WebDriverWait(web, 30).until(EC.element_to_be_clickable((By.XPATH, f_condi_0)))
                    from_botton.click()
-                   time.sleep(random.randrange(5, 10, 1))
+                   time.sleep(random.randrange(10, 20, 1))
                    logger_f_o_time=logging.getLogger(f_o_time)
                    #logger_f_o_time.info("step3_click_1 check from time table  is failed")
                    div_msg = web.find_element_by_id("ctl00_ContentPlaceHolder1_UsrMsgBox_txtMsg").text             
@@ -445,7 +467,8 @@ for u_num in range(len(myusername_list)):
              r_condi =''
              list_n=0
              r_o_num=5
-             while (list_n < len(b_r_time) and r_o_num ==5) :
+             #while (list_n < len(b_r_time) and r_o_num ==5) :
+             while (list_n < len(b_r_time) and r_o_num ==5 and  chk_grdAList.get('id') != None) :
              #r_o_num,r_o_time =get_option_num(soup,'ctl00_ContentPlaceHolder1_grdBList','06:00     ')
                 r_o_num,r_o_time ,r_o_num_0 =get_option_num(soup,'ctl00_ContentPlaceHolder1_grdBList',b_r_time[list_n])
                 list_n +=1
@@ -460,33 +483,38 @@ for u_num in range(len(myusername_list)):
              try:
                  return_botton = WebDriverWait(web, 30).until(EC.element_to_be_clickable((By.XPATH, r_condi)))
                  return_botton.click()
-                 time.sleep(random.randrange(5, 10, 1))
+                 time.sleep(random.randrange(10, 20, 1))
                  #logger_r_o_time=logging.getLogger(r_o_time)
                  logger_r_o_time.info("step3_click_2 check return time table is success")
-             
+                 #web.save_screenshot('%s_Check_return_time_2.png' % mark_word(myusername_list[u_num]))                
+ 
              except:
                    #r_condi="//*[@id='ctl00_ContentPlaceHolder1_grdBList']/tbody/tr[3]/td[2]/input"
                    return_botton = WebDriverWait(web, 30).until(EC.element_to_be_clickable((By.XPATH, r_condi_0)))
                    return_botton.click()
-                   time.sleep(random.randrange(5, 10, 1))
+                   time.sleep(random.randrange(10, 20, 1))
                    #logger_r_o_time=logging.getLogger(r_o_time)
                    div_msg = web.find_element_by_id("ctl00_ContentPlaceHolder1_UsrMsgBox_txtMsg").text
                    logger_r_o_time.info(div_msg)
                    #logger_r_o_time.info("step3_click_2 check return time table is failed")
                    web.save_screenshot('%s_Check_return_time_failed.png' % mark_word(myusername_list[u_num]))
                    break
+
+             #web.save_screenshot('%s_Check_time_table_debug.png' % mark_word(myusername_list[u_num]))
              ### check time table button
              try:
                  step3_click = WebDriverWait(web, 30).until(EC.element_to_be_clickable((By.ID, "ctl00_ContentPlaceHolder1_btnStep3_OK")))
                  step3_click.click()
-                 time.sleep(random.randrange(3, 5, 1))
+                 time.sleep(random.randrange(30,40, 1))
                  logging.info("step3_next check time table button  is success")
              
              except:
                    logging.info("step3_next check time table button  is failed")
                    #web.save_screenshot('%s_CheckTimeTable_failed.png' % mark_word(myusername_list[u_num]))
                    break
-             
+
+             #web.save_screenshot('%s_Check_time_table_3_button.png' % mark_word(myusername_list[u_num]))             
+
              ### step 4
              ### for loop choice seat
              j=0
@@ -496,11 +524,13 @@ for u_num in range(len(myusername_list)):
              #seat_list_seq = ['8','6','7','11','9','10','14','12','13']
              for s_num in seat_list:  ##seat num from seat_list
                   order_seat_from,order_seat_return = change_seat(s_num)
-             
+                  #print('order_seat_from:',order_seat_from)
+                  #print('order_seat_return:',order_seat_return)
                   ### choice from seat
                   if j < len(seat_list) :
+                       #print('seat_from:',seat_list[j])
                        try:
-                             from_seat = WebDriverWait(web, 5).until(EC.element_to_be_clickable((By.ID, order_seat_from)))
+                             from_seat = WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.ID, order_seat_from)))
                              from_seat.click()
                              j = 99  ## got seat
                              logger_num1 = logging.getLogger(s_num)
@@ -519,8 +549,9 @@ for u_num in range(len(myusername_list)):
                   ### choice return seat
              
                   if k < len(seat_list) :
+                       #print('seat_return:',seat_list[k])
                        try:
-                           return_seat = WebDriverWait(web, 5).until(EC.element_to_be_clickable((By.ID, order_seat_return)))
+                           return_seat = WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.ID, order_seat_return)))
                            return_seat.click()
                            k = 99
                            logger_num2 = logging.getLogger(s_num)
@@ -564,20 +595,22 @@ for u_num in range(len(myusername_list)):
                      try :
                           step4_click = web.find_element_by_id("ctl00_ContentPlaceHolder1_btnStep4_OK")
                           step4_click.click()
-                          time.sleep(random.randrange(3, 5, 1))
+                          time.sleep(random.randrange(30, 40, 1))
                           logging.info("step4_click booking  ticket  is success")
              
                      except :
                              logging.info("step4_click book  ticket btn is failed")
                              web.save_screenshot('%s_Booking_ticket_failed.png' % mark_word(myusername_list[u_num]))
-            
+
+                     ## wait for step4_click buffer
+                     time.sleep(random.randrange(30, 40, 1))            
                      ### new alert msg fix 
 
                      try :
                           step5_0_click = WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.ID, "ctl00_ContentPlaceHolder1_UsrMsgBox_btnOK"))) 
                           step5_0_click.click()
                           logging.info("step5_0 alert msg btn is sucesses")
-                          time.sleep(random.randrange(3, 5, 1))
+                          time.sleep(random.randrange(30, 40, 1))
  
                      except :
                              logging.info("tep5_0 alert msg btn is failed")
@@ -628,7 +661,8 @@ for u_num in range(len(myusername_list)):
              
                          if j == 99 and k == 99 :
                             break
-             
+                     
+                     time.sleep(random.randrange(10, 20, 1))
                      ## payment button
                      try :
                           pay_click = WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.ID, "ctl00_ContentPlaceHolder1_btnPayByPrepaidTickets")))
@@ -638,6 +672,8 @@ for u_num in range(len(myusername_list)):
                           logger_mw.info("%s " ,  "Day_From: " + day_from + '    F_seat: ' + f_s_num +  '    F_time: ' + f_o_time)
                           logger_mw.info("%s " ,  "Day_Return: " + day_return + '    R_seat: ' + r_s_num +  '    R_time: ' + r_o_time) 
                           web.save_screenshot('%s_Booking&Payment_Success.png' % mark_word(myusername_list[u_num]))
+                          time.sleep(random.randrange(2, 5, 1))
+                          web.save_screenshot('%s_Booking&Payment_Success_1.png' % mark_word(myusername_list[u_num]))
              
                      except:
                             logging.info("step5_click payment btn is faild")
