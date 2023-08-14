@@ -418,11 +418,12 @@ for u_num in range(len(myusername_list)):
                    
                    
              except :
-                    time.sleep(random.randrange(50, 60, 1))    ### waiting for 3 schdule table
+                    time.sleep(random.randrange(30, 40, 1))    ### waiting for 3 schdule table
                     soup = BeautifulSoup(web.page_source  , "html.parser")
                     chk_grdAList = soup.find(id='ctl00_ContentPlaceHolder1_grdAList')
+                    #print("time table wait of 2 times")
 
-             
+             chk_grdAList_id = chk_grdAList.get('id') 
              ## check from time table  1st: 18:55  , 2nd: 18:45 ,3rd : 19:15
              f_condi =''
              list_n=0
@@ -430,7 +431,7 @@ for u_num in range(len(myusername_list)):
              #from_time_list=['18:55     ','18:45     ','19:15     ']
              #from_time_list=['18:55     ','18:45     ']
              #while (list_n < len(b_f_time) and f_o_num ==5) :
-             while (list_n < len(b_f_time) and f_o_num ==5 and chk_grdAList.get('id') != None) :
+             while (list_n < len(b_f_time) and f_o_num ==5 and chk_grdAList_id != None) :
             
                     f_o_num , f_o_time , f_o_num_0 = get_option_num(soup,'ctl00_ContentPlaceHolder1_grdAList',b_f_time[list_n])
                     #print (f_o_num , f_o_time , f_o_num_0)
@@ -468,7 +469,7 @@ for u_num in range(len(myusername_list)):
              list_n=0
              r_o_num=5
              #while (list_n < len(b_r_time) and r_o_num ==5) :
-             while (list_n < len(b_r_time) and r_o_num ==5 and  chk_grdAList.get('id') != None) :
+             while (list_n < len(b_r_time) and r_o_num ==5 and  chk_grdAList_id != None) :
              #r_o_num,r_o_time =get_option_num(soup,'ctl00_ContentPlaceHolder1_grdBList','06:00     ')
                 r_o_num,r_o_time ,r_o_num_0 =get_option_num(soup,'ctl00_ContentPlaceHolder1_grdBList',b_r_time[list_n])
                 list_n +=1
@@ -607,7 +608,7 @@ for u_num in range(len(myusername_list)):
                      ### new alert msg fix 
 
                      try :
-                          step5_0_click = WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.ID, "ctl00_ContentPlaceHolder1_UsrMsgBox_btnOK"))) 
+                          step5_0_click = WebDriverWait(web, 20).until(EC.element_to_be_clickable((By.ID, "ctl00_ContentPlaceHolder1_UsrMsgBox_btnOK"))) 
                           step5_0_click.click()
                           logging.info("step5_0 alert msg btn is sucesses")
                           time.sleep(random.randrange(30, 40, 1))
