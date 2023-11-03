@@ -78,10 +78,12 @@ c = MongoClient(
 
 
 
-def insert_mongo_db(_db,_collection,_values):
+def insert_many_mongo_db(_db,_collection,_values):
     db = c[_db] ## database
     collection = db[_collection] ## collection 
     collection.insert_many(_values)
+
+
 
 
 def drop_mongo_db(_db,_collection):
@@ -106,6 +108,7 @@ def read_mongo_db_sort(_db,_collection,dicct,_columns):
 
 
 
+
 def read_aggregate_mongo(_db,_collection,dicct):
     db = c[_db] ## database
     collection = db[_collection] ## collection 
@@ -123,13 +126,6 @@ def name_regex(values) :
       if  re.match( '^currency_rate',idx ) :
         collection_list.append(idx)
     return collection_list
-    
-
-
-
-
-
-
 
 ### mongodb atlas connection
 conn_user = get_redis_data('mongodb_user',"hget","user",'NULL')
@@ -192,13 +188,6 @@ def get_exchange_rate() :
   mongo_mydoc_df = pd.DataFrame(list(mongo_mydoc))
   ## chk get mongo data   
   if not mongo_mydoc_df.empty :
-        """
-        for idx in mongo_mydoc :
-            code_list.append(idx.get('code'))
-            bank_rate_sell_list.append(idx.get('bank_rate_sell'))
-            #daily_currency_low.qppend(read_mongo_db(_db,'daily_currency',{},{}))
-            daily_currency_low.append(get_redis_data('daily_currency_low','hget',idx.get('code'),'NULL')) ## values get from local redi
-        """
         code_list = list(mongo_mydoc_df['code'])
         bank_rate_sell_list= list(mongo_mydoc_df['bank_rate_sell']) 
         for idx in code_list : 
@@ -215,7 +204,7 @@ def get_exchange_rate() :
               records= mongo_mydoc_df.copy()
               records['last_modify']= datetime.datetime.now()
               records = records.to_dict(orient='records')
-              insert_mongo_db(_db,_collection,records)
+              insert_many_mongo_db(_db,_collection,records)
         
               ##insert local redis
               delete_redis_data('target_currency')
@@ -229,10 +218,6 @@ def get_exchange_rate() :
             code_list.append(curr_idx)
   
 
-
-
-  #current_list = get_redis_data('current_list','lrange',0,-1)
-  #current_price = get_redis_data('current_price','lrange',0,-1)
   
   df = df.iloc[:,[18,19,1,2,9,10]] ##name ,code 現金 本行買入/賣出  , 即期  買入/賣出
   df.columns= llist(len(df.columns))
@@ -255,22 +240,23 @@ def get_exchange_rate() :
          drop_mongo_db('bankrate',idx)
  
   #print(df)
-  ### insert mongo rate data 
+  ### Before insert of get monog data last row
+  dicct = [  {"$group" : {"_id" : "$code" ,"last_now" : {"$last" : "$bank_rate_sell"}     }}]
   
-  _values_list =[]
-  for index in range(len(df)) :
-    _values = { 'code' : str(df.iloc[index,1]),
-                'bank_rate_buy': str(df.iloc[index,2]) , 
-                'bank_rate_sell' : str(df.iloc[index,3]),
-                'spot_rate_buy' : str(df.iloc[index,4]),
-                'spot_rate_sell' : str(df.iloc[index,5]),
-                'last_modify':datetime.datetime.now() }
+  last_price = read_aggregate_mongo('bankrate',_collections,dicct)
+  last_price_df = pd.DataFrame(list(last_price))
 
-    _values_list.append(_values)
-  insert_mongo_db('bankrate',_collections,_values_list)
+  ### insert mongo rate data 
+  records = df.copy()
+  records['last_modify']  = datetime.datetime.now()
+  records.rename(columns={'現金買':'bank_rate_buy','現金賣':'bank_rate_sell','即期買':'spot_rate_buy','即期賣':'spot_rate_sell'}, inplace=True)
+  records = records.iloc[:,[1,2,3,4,5,7]]
+  records = records.to_dict(orient='records')
+  insert_many_mongo_db('bankrate',_collections,records)
 
   ### compare buy price 
   dfs = pd.DataFrame()
+  df_com = pd.DataFrame()
   dfs_low = pd.DataFrame()
 
   for idx in range(len(code_list)) :
@@ -282,6 +268,9 @@ def get_exchange_rate() :
 
     dfs = pd.concat([dfs,df_mark],ignore_index=True)
     dfs_low = pd.concat([dfs_low,df_low_mark],ignore_index=True)
+
+  ### set compare dataframe 
+  df_com = df.copy()
 
   ### merge columns
   dfs['full'] = dfs[['name', 'code']].apply(' '.join, axis=1) ## list_8
@@ -296,10 +285,10 @@ def get_exchange_rate() :
   df.columns = column_name
 
 
-  return get_updatetime , dfs  ,df , dfs_low,  _collections
+  return get_updatetime , dfs  ,df , dfs_low, df_com ,  _collections ,last_price_df
 
 
-get_updatetime , match_row ,match_df , dfs_low ,data_collections= get_exchange_rate()
+get_updatetime , match_row ,match_df , dfs_low ,df_com ,data_collections , last_price_df = get_exchange_rate()
 
 
 def match_row_5 ( get_updatetime ,match_row,extend) : 
@@ -317,39 +306,91 @@ def match_row_5 ( get_updatetime ,match_row,extend) :
                   time.sleep(random.randrange(1, 3, 1))
 
    
-#print("match_row:",match_row)
-#print("dfs_low:",dfs_low)
 
-bank_close_time ='17:55:00'
+
+def avg_daily_currency(_collection): 
+
+    _db = 'bankrate'
+    
+    dictt_avg = [ {"$group" : {"_id" : "$code" ,  "min_price" :   {"$min" : "$bank_rate_sell" } , 
+                                                  "max_price" :   {"$max" : "$bank_rate_sell" } ,
+                                                  "now_price" :   {"$last" : "$bank_rate_sell"  } ,  
+                                                  "avg_price" :   {"$avg" : { "$toDouble" :"$bank_rate_sell" }  } 
+                              }   
+                  }, 
+                  { "$project" : { "_id" : 0, "code" : "$_id" , "min"	: "$min_price",  "max"	: "$max_price" , "now"	: "$now_price", "avg"	: {"$round": ["$avg_price" , 4] }  }  
+                  } 	            
+                ]
+
+    avg_price = read_aggregate_mongo(_db,_collection,dictt_avg)
+
+    avg_price_df = pd.DataFrame(list(avg_price))    
+
+    return avg_price_df.iloc[:,[0,4]]
+
+
+### data_collections= 'currency_rate_' + format_str
+
+avg_price_df = avg_daily_currency(data_collections)
+## select column 
+
+df_com = df_com.iloc[: , [1,3,6]]
+
+### get insert mongo before last price 
+last_price_df.rename(columns={'_id': 'code'},inplace=True)
+last_price_df = last_price_df.astype({"last_now":"float"})
+
+### merge data , add last_price_df check duplicate the same price 
+
+avg_price_com_dfs = pd.merge(avg_price_df,df_com  , on = ['code'],how='left')
+avg_price_dfs = pd.merge(avg_price_com_dfs,last_price_df , on = ['code'],how='left')
+
+avg_price_dfs.rename(columns={'現金賣':'now'}, inplace=True)
+
+line_avg_price_dfs = avg_price_dfs.copy()
+
+avg_price_dfs['chk'] = avg_price_dfs.apply(lambda x: x['code'] if x['avg'] > x['now'] and x['now'] != x['last_now']  else None ,axis =1 )
+### avg > now(down)  NT  rise up :  a lot money income to stock
+### avg < now(up)    NT  down : a lot money out of stock
+## filter ['chk'] is None 
+
+avg_price_dfs = avg_price_dfs.dropna(axis=0) 
+avg_price_dfs = avg_price_dfs.iloc[:,[0,1,2,3]]
+
+notify_line_time ='14:00:00'
+## line notify work on stock time 0900~1330
+if not avg_price_dfs.empty and time.strftime("%H:%M:%S", time.localtime()) < notify_line_time  :
+
+   #match_row_5(get_updatetime,avg_price_dfs,"\n ")
+   match_row_5( " \n "+get_updatetime,avg_price_dfs," [NT Rise Up] \n")
+
+
+
 
 if not match_row.empty  :
 
-   match_row_5(get_updatetime,match_row,"\n ")
+   match_row_5(" \n "+ get_updatetime,match_row,"\n ")
 
-elif not dfs_low.empty :
+
+### into daily_currency_low && line
+if not dfs_low.empty :
          for idx in range(len(dfs_low)) :
              ## insert to daily_currency_low  
              insert_redis_data('daily_currency_low',dfs_low.loc[idx]['code'],dfs_low.loc[idx]['現金賣'])
-
-
-             ## compare currency , daily_currency_low replace 
-             #if float(get_redis_data('currency','hget',dfs_low.loc[idx]['code'],'NULL')) > dfs_low.loc[idx]['現金賣']  :
-             #        insert_redis_data('currency',dfs_low.loc[idx]['code'],dfs_low.loc[idx]['現金賣'])
 
          dfs_low =dfs_low.iloc[:,[0,1,3]]
          match_row_5(get_updatetime,dfs_low,"   Daily_low\n")
 
 
-elif   time.strftime("%H:%M:%S", time.localtime()) > bank_close_time :
-       """      
-       dicct =  [ 
-                {"$match": {"code":"USD" }},
-                {"$group": { "_id" : "USD" ,
-                             "max" : { "$max" : "$bank_rate_sell"},
-                             "min" : { "$min" : "$bank_rate_sell"} ,
-                             "now" : { "$last" :"$bank_rate_sell"}}}
-                ] 
-       """
+
+bank_close_time ='17:55:00'
+#bank_close_time ='10:30:00'
+
+dd_f = datetime.date.today().strftime('%Y%m%d')
+#print('dd_f:',dd_f ,'data_collections:',data_collections)
+
+### into daily_currency && line 
+if   time.strftime("%H:%M:%S", time.localtime()) > bank_close_time :
 
        dicct =  [ 
                 {"$group": { "_id" : "$code" ,
@@ -363,30 +404,19 @@ elif   time.strftime("%H:%M:%S", time.localtime()) > bank_close_time :
 
 
        ## data format to Dataframe 
-
+    
        match_row = pd.DataFrame(list(mongo_doc))
-       #print(match_row.info())
-       
-       _values_list = []
-       for index in range(len(match_row)) :
-            #print(index)
-            dd = match_row.iloc[index,4]  
-            dd_f =  dd.strftime("%Y%m%d")
-            _values = { 'code' : str(match_row.iloc[index,0]) ,
-                        'max': str(match_row.iloc[index,1]) ,
-                        'min' : str(match_row.iloc[index,2]),
-                        'now' : str(match_row.iloc[index,3]),
-                        #'date' : match_row.iloc[index,4].strftime("%Y%m%d"),
-                        'date' : dd_f,
-                        'last_modify':str(match_row.iloc[index,4]) }
-                      
-            _values_list.append(_values)
-       
+       match_row.rename(columns={'_id':'code'}, inplace=True) 
+       records = match_row.copy()
+       records['date'] = dd_f 
+       records = records.iloc[:,[0,1,2,3,5,4]]
+       #print(records.info())
+       records = records.to_dict(orient='records')
        ### mongo daily_currency count(*)
        dicct_chk =  [
                 { "$match" :{ "date":dd_f }},
                 { "$group": { "_id" : "null" ,
-                             "count" : { "$sum" : "1" }
+                             "count" : { "$sum" : 1 }
                            }
                 }
                 ]
@@ -394,14 +424,23 @@ elif   time.strftime("%H:%M:%S", time.localtime()) > bank_close_time :
        mongo_doc_chk = read_aggregate_mongo('bankrate','daily_currency',dicct_chk)
        mongo_doc_count =  pd.DataFrame(list(mongo_doc_chk))
        
-       ### mongo is empty of insert    
+       ### check mongo is empty of insert    
        if mongo_doc_count.empty  :
-       
-          insert_mongo_db('bankrate','daily_currency',_values_list)
+          
+          insert_many_mongo_db('bankrate','daily_currency',records)
+
+          ### line nodify 
           match_row = match_row.iloc[:,[0,1,2,3]]
-          match_row_5(get_updatetime,match_row,"\n ")
+          #match_row.rename(columns={'_id':'code'}, inplace=True)
+          avg_price_dfs = line_avg_price_dfs.iloc[:,[0,1,3]]
+          ### avg > now(down)  NT  rise up :  a lot money income to stock
+          ### avg < now(up)    NT  down : a lot money out of stock
+
+          match_row =  pd.merge(match_row,avg_price_dfs  , on = ['code'],how='left')     
+          match_row['NT_rise'] = match_row.apply(lambda x: '[Up]' if x['avg'] > x['now']  else '[Null]' if   x['avg'] == x['now'] else '[Down]' ,axis =1 )
+          match_row_5("\n"+get_updatetime,match_row,"\n ")
        
 
 else  :
    print("%s target_currency is not match buy_price" % get_updatetime)
-   print(match_df)
+   print(match_df) 
