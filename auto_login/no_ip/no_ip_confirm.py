@@ -30,13 +30,16 @@ link_url = 'https://www.noip.com/login'
 hostname_url = 'https://my.noip.com/dynamic-dns'
 #hostname_url = 'https://www.noip.com/members/dns/'
 
+options = webdriver.ChromeOptions()
+options.add_argument("--headless")
+options.add_argument('--disable-dev-shm-usage')
+options.add_argument("--no-sandbox")
+options.add_argument("--disable-gpu")
+web = webdriver.Chrome(options=options)
 
-## Usage Virtual Dispaly
-display = Display(visible=0, size=(800, 600))
-display.start()
-#web = webdriver.Chrome('/usr/local/bin/chromedriver') ## for cron path
-##web = webdriver.Chrome()
-#web.get(link_url)
+
+
+
 
 time.sleep(random.randrange(1, 5, 1))
 
@@ -113,8 +116,6 @@ for num in range(len(myusername_list)):
     myusername=myusername_list[num]
     mypassword =mypassword_list[num]
     
-    web = webdriver.Chrome('/usr/local/bin/chromedriver') ## for cron path
-    ##web = webdriver.Chrome()
     web.get(link_url) 
     time.sleep(random.randrange(3, 5, 1))
     
@@ -135,29 +136,30 @@ for num in range(len(myusername_list)):
     logger.info("loging account hostname page is successed!!")
     
     soup = BeautifulSoup(web.page_source , "html.parser")
-    #print('hostname_url:',soup)    
     pass_domain_list = []
     ### domain confirm botton check 
     for domain_idx in domain_list :
         condi = ''
         o_num  =get_option_num(soup,'table no-margin-bv table-stack',domain_idx)
-        condi= '//*[@id="host-panel"]/table/tbody/tr['+ str(o_num) +']/td[5]/button[contains(.,"Confirm")]'
-        chk_down= '//*[@id="host-panel"]/table/tbody/tr['+ str(o_num) +']/td[5]/button[contains(.,"Modify")]'
+
+        #### 20240201 structure location turning 
+        condi= '//*[@id="host-panel"]/table/tbody/tr['+ str(o_num) +']/td[6]/button[contains(.,"Confirm")]'
+        chk_down= '//*[@id="host-panel"]/table/tbody/tr['+ str(o_num) +']/td[6]/button[contains(.,"Modify")]'
         logger = logging.getLogger(mark_word(domain_idx))
         try :
-             btn_confirm = WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.XPATH,condi)))
+             btn_confirm = WebDriverWait(web, 15).until(EC.element_to_be_clickable((By.XPATH,condi)))
              btn_confirm.click()
              time.sleep(random.randrange(5, 10, 1))
              try : ### After check Modify status is exiest
-                  WebDriverWait(web, 10).until(EC.presence_of_element_located((By.XPATH,chk_down)))
+                  WebDriverWait(web, 15).until(EC.presence_of_element_located((By.XPATH,chk_down)))
                   logger.info("domain %s confirm is successed!!" % mark_word(domain_idx))
 
              except :
-               logger.info("domain $s confirm is failed!!" % mark_word(domain_idx))
+               logger.info("domain %s confirm is failed!!" % mark_word(domain_idx))
                pass_domain_list.append(domain_idx)
 
         except :
-                WebDriverWait(web, 10).until(EC.presence_of_element_located((By.XPATH,chk_down)))
+                WebDriverWait(web, 15).until(EC.presence_of_element_located((By.XPATH,chk_down)))
                 logger.info("domain %s confirm is pass !!" % mark_word(domain_idx))
                 pass_domain_list.append(mark_word(domain_idx))
 
@@ -167,7 +169,8 @@ for num in range(len(myusername_list)):
         time.sleep(random.randrange(1, 10, 1)) 
     ### domain all done && colse web 
     time.sleep(random.randrange(1, 10, 1))
-    web.quit()
+    #web.quit()
+
     ### next trun user 
     if num < (len(myusername_list)-1):
        logging.info("waiting for next  user!!")
@@ -177,17 +180,20 @@ for num in range(len(myusername_list)):
 
 time.sleep(random.randrange(1, 10, 1))
 
+domain_status= 0
+
 if len(pass_domain_list) == 0 :
 
    logging.info("user Confirm  done!!")
+   domain_status =1
 
 else : 
    logging.info("user all pass!!")
 
 
 
-#web.quit()
-display.stop()
+
+web.quit()
 
      ### read for log last 5 line of mail body
 body = ''
@@ -203,5 +209,17 @@ finally:
          fp.close()
 
 
-send_mail.send_email('no_ip auto confirm loging',body)
+## domain status chk for mail 
+
+if domain_status == 1 :
+
+   send_mail.send_email('no_ip auto confirm loging',body)
+
+else : 
+
+      if datetime.datetime.today().isoweekday() == 1 : 
+
+         send_mail.send_email('no_ip auto confirm loging',body)
+
+
 
