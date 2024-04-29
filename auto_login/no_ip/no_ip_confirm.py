@@ -107,7 +107,6 @@ def mark_word(word):
 
 
 ## get user & pwd 
-## myusername_list , mypassword_list , domain_list = get_config() ## get loging user && pwd 
 myusername_list , mypassword_list , domain_list = get_redis_data() ## get loging user && pwd 
 
     
