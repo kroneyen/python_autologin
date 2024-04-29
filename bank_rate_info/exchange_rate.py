@@ -10,6 +10,14 @@ import redis
 import random
 from pymongo import MongoClient
 import re
+import send_mail
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import seaborn as sns
+from matplotlib.font_manager import fontManager
+import del_png
+
+
 
 
 url = 'https://rate.bot.com.tw/xrt?Lang=zh-TW'
@@ -104,7 +112,7 @@ def read_mongo_db_sort(_db,_collection,dicct,_columns):
     db = c[_db] ## database
     collection = db[_collection] ## collection 
     #return collection.find({_code:_qq},{"code":1,"name":0,"_id":0,"last_modify":0})
-    return collection.find(dicct).sort(_columns).liimit(1)
+    return collection.find(dicct).sort(_columns).limit(1)
 
 
 
@@ -329,6 +337,70 @@ def avg_daily_currency(_collection):
     return avg_price_df.iloc[:,[0,4]]
 
 
+
+def Plot_Exchange_Rate(date,code_lists) :
+
+   dfs = pd.DataFrame()
+
+   colors = ['tab:blue', 'tab:orange', 'tab:red', 'tab:green', 'tab:gray']
+   
+   code_num = 0 
+    
+   for code_idx in code_lists :
+
+      altas_mydoc = read_mongo_db('bankrate','daily_currency',{'code': code_idx ,'date': {'$gte' : date}},{'_id':0 ,'code':1,'now':1 ,'date':1})
+
+
+      df = pd.DataFrame(list(altas_mydoc))
+
+      #df.rename(columns={'now': idx}, inplace=True)
+
+      rest_df = pd.DataFrame(data = df['now'].values,columns=[code_idx] , index=df['date'])
+      #match_row =pd.merge( pd.merge(match_row,df_auth_stock,on = ['code'],how='left'),df_cal_day_conti,on = ['code'],how='left')
+      
+      for idx in range(0,len(rest_df.columns),5):
+
+        idx_records = rest_df.iloc[ : , idx:idx+5 ]
+        ax = idx_records.plot(y = idx_records.columns ,color=colors[code_num] )
+        ## 顯示數據
+        for line, name in zip(ax.lines, idx_records.columns):
+           y = line.get_ydata()[-1]
+           #ax.annotate(name, xy=(1,y), xytext=(4,0), color=line.get_color(),
+           ax.annotate(name, xy=(1,y), xytext=(4,0), color=colors[code_num],                       
+                xycoords = ax.get_yaxis_transform(), textcoords="offset points",
+                size=10, va="center")
+
+      #plt.savefig('./images/image_'+ str(idx) +'_'+ str(idx+4) +'.png' )
+      plt.savefig('./images/image_'+ code_idx +'_'+ str(idx+4) +'.png' )
+      plt.clf()
+
+      code_num +=1
+
+      dfs = pd.concat([dfs,rest_df],axis=1)
+   return dfs
+
+
+
+
+def get_mongo_last_date(cal_day):
+ ### mongo query for last ? days
+ dictt_set = [ {"$group": { "_id" : { "$toInt" : "$date" } }},{"$sort" : {"_id" :-1}} , { "$limit" : cal_day},{"$sort" : {"_id" :1}} , { "$limit" :1}]
+
+ ### mongo dict data
+
+ set_doc =  read_aggregate_mongo('bankrate','daily_currency',dictt_set)
+
+ ### for lists  get cal date 
+ for idx in set_doc:
+
+  idx_date = idx.get("_id")
+
+ #set_date = str(idx_date)
+ return str(idx_date)
+
+
+
+
 ### data_collections= 'currency_rate_' + format_str
 
 avg_price_df = avg_daily_currency(data_collections)
@@ -383,7 +455,7 @@ if not dfs_low.empty :
 
 
 
-bank_close_time ='17:55:00'
+bank_close_time ='18:30:00'
 #bank_close_time ='10:30:00'
 
 dd_f = datetime.date.today().strftime('%Y%m%d')
@@ -391,6 +463,7 @@ dd_f = datetime.date.today().strftime('%Y%m%d')
 
 ### into daily_currency && line 
 if   time.strftime("%H:%M:%S", time.localtime()) > bank_close_time :
+      
 
        dicct =  [ 
                 {"$group": { "_id" : "$code" ,
@@ -439,6 +512,32 @@ if   time.strftime("%H:%M:%S", time.localtime()) > bank_close_time :
           match_row =  pd.merge(match_row,avg_price_dfs  , on = ['code'],how='left')     
           match_row['NT_rise'] = match_row.apply(lambda x: '[Up]' if x['avg'] > x['now']  else '[Null]' if   x['avg'] == x['now'] else '[Down]' ,axis =1 )
           match_row_5("\n"+get_updatetime,match_row,"\n ")
+
+
+
+          ### email on saturday
+          if datetime.datetime.today().isoweekday() == 6 :  ## show all without filter on friday
+
+             ### del images/*.png
+             del_png.del_images()
+
+             ### get last day 
+             ddate = get_mongo_last_date(60)
+
+             dictt = {}
+             _columns= {"code":1,"_id":0}
+             code_lists = []
+             mydoc = read_mongo_db('bankrate','target_currency',dictt,_columns)
+             for idx in mydoc :
+                 code_lists.append(idx.get('code'))
+
+             mail_match_row = Plot_Exchange_Rate(ddate,code_lists)
+             #Plot_Exchange_Rate(ddate,code_lists)
+  
+             body = mail_match_row.to_html(classes='table table-striped',escape=False)
+
+             send_mail.send_email('Exchange_Rate_{today}'.format(today=dd_f),body)
+
        
 
 else  :
