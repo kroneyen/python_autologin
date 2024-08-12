@@ -40,6 +40,20 @@ def send_line_notify(token,msg):
     headers={"Authorization": "Bearer " + token},
     data={'message': msg}
     )
+"""
+def send_line_notify(token,msg):
+
+    requests.post(
+    url='https://notify-api.line.me/api/notify',
+    headers={"Authorization": "Bearer " + token},
+    data={'message': msg ,
+          stickerPackageId": "446",
+          "stickerId": "1988"}
+    )
+"""
+
+
+
 
 def get_redis_data(_key,_type,_field_1,_field_2):
 
@@ -91,6 +105,11 @@ def insert_many_mongo_db(_db,_collection,_values):
     collection = db[_collection] ## collection 
     collection.insert_many(_values)
 
+
+def delete_many_mongo_db(_db,_collection,dicct):
+    db = c[_db] ## database
+    collection = db[_collection] ## collection 
+    collection.delete_many(dicct)
 
 
 
@@ -226,15 +245,14 @@ def get_exchange_rate() :
             code_list.append(curr_idx)
   
 
-  
   df = df.iloc[:,[18,19,1,2,9,10]] ##name ,code 現金 本行買入/賣出  , 即期  買入/賣出
   df.columns= llist(len(df.columns))
   df = df[df[1].isin(code_list)] ##比對 
   df = df.astype({2:'float',3:'float',4:'float',5:'float'})
-  df.columns = ['name','code', '現金買','現金賣','即期買', '即期賣']  
-  df['buy_rate'] = bank_rate_sell_list ## list_6
-  #df['daily_currency_low'] = daily_currency_low  ##list_7
-
+  df.columns = ['name','code', '現金買','現金賣','即期買', '即期賣'] 
+  ### merge target bank_rate_sell 
+  df =  pd.merge(df, mongo_mydoc_df  , on = ['code'],how='left')
+  df.rename(columns={'bank_rate_sell' : 'target'}, inplace=True)
   ###  insert into mongo 
   ori =  datetime.datetime.strptime(get_updatetime, "%Y/%m/%d %H:%M")
   format_str = datetime.datetime.strftime(ori, "%Y%m%d")
@@ -253,20 +271,20 @@ def get_exchange_rate() :
   
   last_price = read_aggregate_mongo('bankrate',_collections,dicct)
   last_price_df = pd.DataFrame(list(last_price))
-
+  #print('dfffff:',df)
   ### insert mongo rate data 
   records = df.copy()
   records['last_modify']  = datetime.datetime.now()
   records.rename(columns={'現金買':'bank_rate_buy','現金賣':'bank_rate_sell','即期買':'spot_rate_buy','即期賣':'spot_rate_sell'}, inplace=True)
   records = records.iloc[:,[1,2,3,4,5,7]]
   records = records.to_dict(orient='records')
+  #print('recordscurrency_rate_20240624:',records)
   insert_many_mongo_db('bankrate',_collections,records)
 
   ### compare buy price 
   dfs = pd.DataFrame()
   df_com = pd.DataFrame()
   dfs_low = pd.DataFrame()
-
   for idx in range(len(code_list)) :
     mark_1 = df['現金賣'] < float(bank_rate_sell_list[idx])
     mark_2 = df['code'] == code_list[idx]
@@ -274,7 +292,9 @@ def get_exchange_rate() :
     df_mark = df[(mark_1 & mark_2)]
     df_low_mark = df[(mark_2 & mark_3)] 
 
+    ### Low then Target Price
     dfs = pd.concat([dfs,df_mark],ignore_index=True)
+    ### Low then Daily Price 
     dfs_low = pd.concat([dfs_low,df_low_mark],ignore_index=True)
 
   ### set compare dataframe 
@@ -286,18 +306,28 @@ def get_exchange_rate() :
 
   df['full'] = df[['name', 'code']].apply(' '.join, axis=1)
   df.columns= llist(len(df.columns))
+   
+  #print('dfs:',dfs)
+  #print('df:',df)  
+
+  #dfs.columns= llist(len(dfs.columns))
+  #df.columns= llist(len(df.columns)) 
+
   dfs =dfs.iloc[:,[7,2,3,4,5,6]] 
   df =df.iloc[:,[7,2,3,4,5,6]] 
-  column_name=['幣別', '現金買','現金賣','即期買', '即期賣','buy_rate']
+  #column_name=['幣別', '現金買','現金賣','即期買', '即期賣','buy_rate']
+  column_name=['幣別', '現金買','現金賣','即期買', '即期賣','target']
   dfs.columns = column_name
   df.columns = column_name
-
 
   return get_updatetime , dfs  ,df , dfs_low, df_com ,  _collections ,last_price_df
 
 
 get_updatetime , match_row ,match_df , dfs_low ,df_com ,data_collections , last_price_df = get_exchange_rate()
 
+
+#print('match_row:',match_row)
+#print('match_df:',match_df)
 
 def match_row_5 ( get_updatetime ,match_row,extend) : 
 
@@ -408,8 +438,11 @@ avg_price_df = avg_daily_currency(data_collections)
 
 df_com = df_com.iloc[: , [1,3,6]]
 
+
+
 ### get insert mongo before last price 
 last_price_df.rename(columns={'_id': 'code'},inplace=True)
+
 last_price_df = last_price_df.astype({"last_now":"float"})
 
 ### merge data , add last_price_df check duplicate the same price 
@@ -422,6 +455,7 @@ avg_price_dfs.rename(columns={'現金賣':'now'}, inplace=True)
 line_avg_price_dfs = avg_price_dfs.copy()
 
 avg_price_dfs['chk'] = avg_price_dfs.apply(lambda x: x['code'] if x['avg'] > x['now'] and x['now'] != x['last_now']  else None ,axis =1 )
+
 ### avg > now(down)  NT  rise up :  a lot money income to stock
 ### avg < now(up)    NT  down : a lot money out of stock
 ## filter ['chk'] is None 
@@ -429,7 +463,7 @@ avg_price_dfs['chk'] = avg_price_dfs.apply(lambda x: x['code'] if x['avg'] > x['
 avg_price_dfs = avg_price_dfs.dropna(axis=0) 
 avg_price_dfs = avg_price_dfs.iloc[:,[0,1,2,3]]
 
-notify_line_time ='14:00:00'
+notify_line_time ='18:00:00'
 ## line notify work on stock time 0900~1330
 if not avg_price_dfs.empty and time.strftime("%H:%M:%S", time.localtime()) < notify_line_time  :
 
@@ -437,26 +471,36 @@ if not avg_price_dfs.empty and time.strftime("%H:%M:%S", time.localtime()) < not
    match_row_5( " \n "+get_updatetime,avg_price_dfs," [NT Rise Up] \n")
 
 
-
-
 if not match_row.empty  :
 
-   match_row_5(" \n "+ get_updatetime,match_row,"\n ")
+      match_row_5(" \n "+ get_updatetime,match_row,"  [Target]  \n ")
 
+
+
+#print('dfs_low:',dfs_low)
 
 ### into daily_currency_low && line
 if not dfs_low.empty :
          for idx in range(len(dfs_low)) :
              ## insert to daily_currency_low  
+             records = [{ 'code' :dfs_low.loc[idx]['code'], 'bank_rate_sell':dfs_low.loc[idx]['現金賣'], 'last_modify': datetime.datetime.now()}]
+             #records = records.to_dict(orient='records')
+             del_dic = {'code' :dfs_low.loc[idx]['code'] }
+
+             #print('records:', records)
+             #print('del_dic:', del_dic)
+             delete_many_mongo_db('bankrate','daily_currency_low',del_dic)
+             insert_many_mongo_db('bankrate','daily_currency_low',records)
+
              insert_redis_data('daily_currency_low',dfs_low.loc[idx]['code'],dfs_low.loc[idx]['現金賣'])
 
          dfs_low =dfs_low.iloc[:,[0,1,3]]
-         match_row_5(get_updatetime,dfs_low,"   Daily_low\n")
+         match_row_5(get_updatetime,dfs_low,"   [Daily_Low] \n")
 
 
 
+#bank_close_time ='14:30:00'
 bank_close_time ='18:30:00'
-#bank_close_time ='10:30:00'
 
 dd_f = datetime.date.today().strftime('%Y%m%d')
 #print('dd_f:',dd_f ,'data_collections:',data_collections)
@@ -500,6 +544,7 @@ if   time.strftime("%H:%M:%S", time.localtime()) > bank_close_time :
        ### check mongo is empty of insert    
        if mongo_doc_count.empty  :
           
+         
           insert_many_mongo_db('bankrate','daily_currency',records)
 
           ### line nodify 
