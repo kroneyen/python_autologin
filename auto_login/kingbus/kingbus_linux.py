@@ -608,7 +608,19 @@ for u_num in range(len(myusername_list)):
                      except :
                              logging.info("setting return ticket amount is failed")
                              web.save_screenshot('%s_Set_return_ticket_failed.png' % mark_word(myusername_list[u_num]))
-             
+
+                     ### checkbox agree
+                     try :
+                          step4_chkAgree_ = web.find_element_by_id("ctl00_ContentPlaceHolder1_chkAgree")
+                          step4_chkAgree_.click()
+                          time.sleep(random.randrange(30, 40, 1))
+                          logging.info("step4_click_checkbox  Agree  is success")
+
+                     except :
+                             logging.info("step4_click_checkbox is failed")
+                             web.save_screenshot('%s_click_checkbox_failed.png' % mark_word(myusername_list[u_num]))
+            
+ 
                      ### finshed book bus ticket
                      try :
                           step4_click = web.find_element_by_id("ctl00_ContentPlaceHolder1_btnStep4_OK")
