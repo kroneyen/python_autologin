@@ -40,18 +40,19 @@ def send_line_notify(token,msg):
     headers={"Authorization": "Bearer " + token},
     data={'message': msg}
     )
-"""
-def send_line_notify(token,msg):
 
-    requests.post(
-    url='https://notify-api.line.me/api/notify',
-    headers={"Authorization": "Bearer " + token},
-    data={'message': msg ,
-          stickerPackageId": "446",
-          "stickerId": "1988"}
-    )
-"""
 
+def send_tg_bot_msg(token,chat_id,msg):
+
+  #url = f"https://api.telegram.org/bot{'+token+'}/sendMessage?chat_id={'+chat_id}&text={msg}&parse_mode=HTML"
+  url = "https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={msg}&parse_mode=HTML".format(token = token ,chat_id=chat_id,msg=msg)
+
+  try :
+       requests.get(url)
+
+  except :
+       time.sleep(random.random()) ### 0~1 num   
+       requests.get(url)
 
 
 
@@ -169,7 +170,9 @@ def atlas_read_mongo_db(_db,_collection,dicct,_columns):
     return collection.find(dicct,_columns)
 
 
+def ifnull(value, default):
 
+   return value if value is not None else default
 
 
 def get_exchange_rate() :
@@ -213,7 +216,8 @@ def get_exchange_rate() :
           mongo_mydoc = read_mongo_db(_db,_collection,dicct,_columns)
 
   mongo_mydoc_df = pd.DataFrame(list(mongo_mydoc))
-  ## chk get mongo data   
+
+  ## chk get mongo data   need check code
   if not mongo_mydoc_df.empty :
         code_list = list(mongo_mydoc_df['code'])
         bank_rate_sell_list= list(mongo_mydoc_df['bank_rate_sell']) 
@@ -248,6 +252,11 @@ def get_exchange_rate() :
   df = df.iloc[:,[18,19,1,2,9,10]] ##name ,code 現金 本行買入/賣出  , 即期  買入/賣出
   df.columns= llist(len(df.columns))
   df = df[df[1].isin(code_list)] ##比對 
+  
+  ### KRW no spot_rate_buy , spot_rate_sell
+  for  idx in [4,5] :
+       df.iloc[:,idx] = df.iloc[:,idx].apply(lambda  x: 0 if x.strip() =='-' else x )
+
   df = df.astype({2:'float',3:'float',4:'float',5:'float'})
   df.columns = ['name','code', '現金買','現金賣','即期買', '即期賣'] 
   ### merge target bank_rate_sell 
@@ -288,7 +297,7 @@ def get_exchange_rate() :
   for idx in range(len(code_list)) :
     mark_1 = df['現金賣'] < float(bank_rate_sell_list[idx])
     mark_2 = df['code'] == code_list[idx]
-    mark_3 = df['現金賣'] < float(daily_currency_low[idx])
+    mark_3 = df['現金賣'] < float(ifnull(daily_currency_low[idx],0))
     df_mark = df[(mark_1 & mark_2)]
     df_low_mark = df[(mark_2 & mark_3)] 
 
@@ -306,12 +315,6 @@ def get_exchange_rate() :
 
   df['full'] = df[['name', 'code']].apply(' '.join, axis=1)
   df.columns= llist(len(df.columns))
-   
-  #print('dfs:',dfs)
-  #print('df:',df)  
-
-  #dfs.columns= llist(len(dfs.columns))
-  #df.columns= llist(len(df.columns)) 
 
   dfs =dfs.iloc[:,[7,2,3,4,5,6]] 
   df =df.iloc[:,[7,2,3,4,5,6]] 
@@ -332,17 +335,32 @@ get_updatetime , match_row ,match_df , dfs_low ,df_com ,data_collections , last_
 def match_row_5 ( get_updatetime ,match_row,extend) : 
 
           line_key_list =[]
+          tg_key_list=[]
+          tg_chat_id=[]
+
           line_key_list.append( get_redis_data('line_key_hset','hget','Exchange_Rate','NULL')) ## for exchange_rate (Stock_YoY/Stock/rss_google/Exchange_Rate)
+          tg_key_list.append(get_redis_data('tg_bot_hset','hget','@stock_broadcast_2024bot','NULL')) ## for tg of signle
+          tg_chat_id.append(get_redis_data('tg_chat_id','hget','stock_broadcast','NULL')) ## for tg of signle
+
           for match_row_index in range(0,len(match_row),5) :
               #msg = get_updatetime + "  " ## for line br
               #msg = get_updatetime  +"\n " + match_row.iloc[match_row_index:match_row_index+5,:].to_string(index = False)  ## for line notify msg 1000  character limit 
               msg = get_updatetime + extend  + match_row.iloc[match_row_index:match_row_index+5,:].to_string(index = False)  ## for line notify msg 1000  character limit 
+              tg_msg ="【Exchange_Rate】"+  msg
 
               ### for multiple line group
-              for line_key in  line_key_list : ## 
-                  send_line_notify(line_key, msg)
-                  time.sleep(random.randrange(1, 3, 1))
+              ### line notify colse on '2025-03-31'
+              deadline_check = datetime.date.today().strftime("%Y-%m-%d")
+              if  deadline_check <= '2025-03-31' :
 
+                  for line_key in  line_key_list : ##
+                      send_line_notify(line_key, msg)
+                      time.sleep(random.randrange(1, 3, 1))
+
+
+              for tg_key in  tg_key_list : ## 
+                  send_tg_bot_msg(tg_key,tg_chat_id[0],tg_msg)
+                  time.sleep(random.randrange(1, 3, 1))
    
 
 
@@ -401,12 +419,14 @@ def Plot_Exchange_Rate(date,code_lists) :
                 size=10, va="center")
 
       #plt.savefig('./images/image_'+ str(idx) +'_'+ str(idx+4) +'.png' )
-      plt.savefig('./images/image_'+ code_idx +'_'+ str(idx+4) +'.png' )
+      #plt.savefig('./images/image_'+ code_idx +'_'+ str(idx+4) +'.png' )
+      plt.savefig('./images/image_'+ code_idx  +'.png' )
       plt.clf()
 
       code_num +=1
 
-      dfs = pd.concat([dfs,rest_df],axis=1)
+      dfs = pd.concat([dfs,rest_df],axis=1) 
+   dfs.fillna(0,inplace=True) 
    return dfs
 
 
@@ -443,7 +463,8 @@ df_com = df_com.iloc[: , [1,3,6]]
 ### get insert mongo before last price 
 last_price_df.rename(columns={'_id': 'code'},inplace=True)
 
-last_price_df = last_price_df.astype({"last_now":"float"})
+#last_price_df = last_price_df.astype({'last_now':'float'})
+last_price_df['last_now'] = last_price_df['last_now'].astype(float)
 
 ### merge data , add last_price_df check duplicate the same price 
 
@@ -499,7 +520,7 @@ if not dfs_low.empty :
 
 
 
-#bank_close_time ='14:30:00'
+#bank_close_time ='09:30:00'
 bank_close_time ='18:30:00'
 
 dd_f = datetime.date.today().strftime('%Y%m%d')
@@ -527,7 +548,6 @@ if   time.strftime("%H:%M:%S", time.localtime()) > bank_close_time :
        records = match_row.copy()
        records['date'] = dd_f 
        records = records.iloc[:,[0,1,2,3,5,4]]
-       #print(records.info())
        records = records.to_dict(orient='records')
        ### mongo daily_currency count(*)
        dicct_chk =  [
@@ -572,12 +592,14 @@ if   time.strftime("%H:%M:%S", time.localtime()) > bank_close_time :
              dictt = {}
              _columns= {"code":1,"_id":0}
              code_lists = []
+             mail_code = []
              mydoc = read_mongo_db('bankrate','target_currency',dictt,_columns)
              for idx in mydoc :
                  code_lists.append(idx.get('code'))
+                 mail_code.append(f'<a href="https://rate.bot.com.tw/xrt/quote/ltm/%s" target="_blank">%s</a>' %( idx.get('code') , idx.get('code') ))
 
              mail_match_row = Plot_Exchange_Rate(ddate,code_lists)
-             #Plot_Exchange_Rate(ddate,code_lists)
+             mail_match_row.columns = mail_code
   
              body = mail_match_row.to_html(classes='table table-striped',escape=False)
 
@@ -585,6 +607,8 @@ if   time.strftime("%H:%M:%S", time.localtime()) > bank_close_time :
 
        
 
+"""
 else  :
    print("%s target_currency is not match buy_price" % get_updatetime)
    print(match_df) 
+"""
