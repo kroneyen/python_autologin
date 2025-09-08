@@ -249,7 +249,6 @@ day_from , day_return = Check_sys_date(None,None)
 vpn_connect.vpn_connect('conn')
 vpn_domain_list =  get_redis_data_tg('no_ip_domain_list','lrange',-1,-1)
 
-#logger_vpn = logging.getLogger('pekrone_myftp_org')
 logger_vpn = logging.getLogger(mark_word(vpn_domain_list[0]))
 logger_vpn.info('vpn connection success ')
 time.sleep(random.randrange(3, 5, 1))
