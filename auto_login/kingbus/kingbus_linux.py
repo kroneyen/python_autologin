@@ -20,6 +20,14 @@ from selenium.webdriver.support.ui import Select
 import send_mail
 import re
 import del_png
+import os
+import tg_bot 
+import redis
+import vpn_connect
+
+
+pool = redis.ConnectionPool(host='localhost', port=6379, decode_responses=True)
+r = redis.StrictRedis(connection_pool=pool)
 
 
 ### del images/*.png
@@ -41,6 +49,7 @@ options.add_argument("--headless")
 options.add_argument('--disable-dev-shm-usage')
 options.add_argument("--no-sandbox")
 web = webdriver.Chrome(options=options)
+#web = webdriver.Chrome('/usr/bin/chromedriver',options=options)
 
 
 #s_start_id ='A03' ##<option value="A03">台北轉運</option>
@@ -87,9 +96,11 @@ def get_config():
 """
 
 def get_redis_data():
+    """
     import redis
     pool = redis.ConnectionPool(host='localhost', port=6379, decode_responses=True)
     r = redis.StrictRedis(connection_pool=pool)
+    """
     hkey_lists = {}
     m_to=[]
     myusername_list = r.lrange('kingbus_myusername_list','0','-1')
@@ -103,6 +114,20 @@ def get_redis_data():
          m_to.append(r.hget(i,'m_to'))
 
     return myusername_list , mypassword_list , ticket_num , seat_list ,hkey_lists,m_to
+
+
+def get_redis_data_tg(_key,_type,_field_1,_field_2):
+
+    if _type == "lrange" :
+       _list = r.lrange(_key,_field_1,_field_2)
+
+    elif _type == "hget" :
+       _list = r.hget(_key,_field_1)
+
+    return _list
+
+
+
 
 
 def get_option_num(soup,tb_id,time) : 
@@ -201,7 +226,6 @@ def alert_sw(web):
 
 
 
-
 order_url="https://order.kingbus.com.tw/ORD/ORD_M_1520_OrderGoBack.aspx"
 
 
@@ -219,6 +243,18 @@ myusername_list , mypassword_list , ticket_num  , seat_list , hkey_lists,m_to= g
 ## customize booking date
 day_from , day_return = Check_sys_date(None,None)
         
+
+### connection vpn 
+
+vpn_connect.vpn_connect('conn')
+vpn_domain_list =  get_redis_data_tg('no_ip_domain_list','lrange',-1,-1)
+
+#logger_vpn = logging.getLogger('pekrone_myftp_org')
+logger_vpn = logging.getLogger(mark_word(vpn_domain_list[0]))
+logger_vpn.info('vpn connection success ')
+time.sleep(random.randrange(3, 5, 1))
+
+
 
 ## mutiple user booking
 for u_num in range(len(myusername_list)):
@@ -706,6 +742,7 @@ for u_num in range(len(myusername_list)):
                           #web.save_screenshot('%s_Booking&Payment_Success.png' % mark_word(myusername_list[u_num]))
                           web.save_screenshot('{}_Booking&Payment_Success_{}.png'.format(mark_word(myusername_list[u_num]),day_from.replace("/",'')))
                           time.sleep(random.randrange(2, 5, 1))
+                          web.execute_script("window.scrollTo(0, document.body.scrollHeight);")
                           #web.save_screenshot('%s_Booking&Payment_Success_1.png' % mark_word(myusername_list[u_num]))
                           web.save_screenshot('{}_Booking&Payment_Success_Confirm_{}.png'.format(mark_word(myusername_list[u_num]),day_return.replace("/",'')))
              
@@ -733,6 +770,15 @@ for u_num in range(len(myusername_list)):
 web.quit()
 display.stop()
 
+
+### disconnection vpn 
+
+vpn_connect.vpn_connect('dis')
+logger_vpn.info( 'vpn is disconnect')
+
+
+
+
 body = ''
 log_date = datetime.date.today().strftime("%Y-%m-%d")
 try:
@@ -740,9 +786,35 @@ try:
       data = fp.readlines()
       for i in data[-100:]:
           if log_date in i:  ## read only  today log 
-             body  = body + i
+            body  = body + i
+
+   
+
 
 finally:
     fp.close()
 
+
 send_mail.send_email('kingbus auto booking ',body,m_to)
+
+"""
+async def send_media_group(bot_token, chat_id, image_paths):
+    bot = telegram.Bot(token=bot_token)
+    media = [telegram.InputMediaPhoto(media=open(img, 'rb')) for img in image_paths]
+    await bot.send_media_group(chat_id=chat_id, media=media)
+"""
+
+#token =  get_redis_data_tg('tg_bot_hset','hget','@stock_broadcast_2024bot','NULL')
+#chat_id = get_redis_data_tg('tg_chat_id','hget','stock_broadcast','NULL')
+
+
+image_paths=[]    
+items = os.listdir(".")  ## os.listdir (path)  
+
+caption='kingbus auto booking_'+log_date
+
+for names in items :
+  if  names.endswith(".png") : ##find out * '.png' file
+      #image_paths.append(names)
+      #tg_bot.send_tg_media_group(image_paths)
+      tg_bot.send_tg_bot_photo(caption,names) 
