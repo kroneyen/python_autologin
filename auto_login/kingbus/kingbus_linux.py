@@ -1,4 +1,4 @@
-#! /usr/bin/env python3.7
+#! /usr/bin/env python3.13
 # -*- coding: utf-8 -*-
 
 ## chromedrive 2.32
@@ -45,11 +45,14 @@ logging.info(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()))
 
 
 options = webdriver.ChromeOptions()
-options.add_argument("--headless")
+options.add_argument("--headless=new")
 options.add_argument('--disable-dev-shm-usage')
 options.add_argument("--no-sandbox")
+options.add_argument("--disable-gpu")
+options.add_argument("--disable-site-isolation-trials")
+options.add_argument("--renderer-process-limit=4")
+
 web = webdriver.Chrome(options=options)
-#web = webdriver.Chrome('/usr/bin/chromedriver',options=options)
 
 
 #s_start_id ='A03' ##<option value="A03">台北轉運</option>
@@ -72,35 +75,9 @@ def random_ticket():
     ticket_2 = ticket_num[i+1]
 
   return ticket_1 , ticket_2
-"""
-def get_config():
-    import configparser
-    import ast
 
-    config = configparser.ConfigParser()
-    config.read('config.ini')
-    for section_list in config.sections(): ## get  sctions
-        for key in config[section_list] : ## get keys
-            ## get values
-            if section_list =='user':
-               myusername_list = ast.literal_eval(config.get(section_list,key))
-            elif section_list =='pwd':
-               mypassword_list = ast.literal_eval(config.get(section_list,key))
-            elif section_list =='ticket':
-               ticket_num = ast.literal_eval(config.get(section_list,key))
-            elif section_list =='seat':
-               seat_list = ast.literal_eval(config.get(section_list,key))
-
-
-    return myusername_list , mypassword_list , ticket_num , seat_list
-"""
 
 def get_redis_data():
-    """
-    import redis
-    pool = redis.ConnectionPool(host='localhost', port=6379, decode_responses=True)
-    r = redis.StrictRedis(connection_pool=pool)
-    """
     hkey_lists = {}
     m_to=[]
     myusername_list = r.lrange('kingbus_myusername_list','0','-1')
@@ -175,13 +152,13 @@ def Check_sys_date(s_day_from , s_day_return) :
     if s_day_from == '0' :
        
        day_from = datetime.datetime.strftime(datetime.date.today() + datetime.timedelta(days = 11),'%Y/%m/%d')  ## booking at friday con job on 1
-       #day_from = datetime.datetime.strftime(datetime.date.today() + datetime.timedelta(days = 14),'%Y/%m/%d')  ## booking at friday   con job on 5
+
     else :
        day_from = s_day_from
 
     if s_day_return == '0' :
        day_return = datetime.datetime.strftime(datetime.date.today() + datetime.timedelta(days = 14),'%Y/%m/%d') ## booking next monday
-       #day_return = datetime.datetime.strftime(datetime.date.today() + datetime.timedelta(days = 17),'%Y/%m/%d') ## booking next at monday
+
     else :
        day_return = s_day_return
 
@@ -233,8 +210,6 @@ order_url="https://order.kingbus.com.tw/ORD/ORD_M_1520_OrderGoBack.aspx"
 #display = Display(visible=0, size=(800, 600))
 display = Display(visible=0, size=(1280, 800))
 display.start()
-#web = webdriver.Chrome()
-#web = webdriver.Chrome('/usr/local/bin/chromedriver') ## for cron path
 
 ## step 1
 ## get user & pwd
@@ -262,9 +237,7 @@ for u_num in range(len(myusername_list)):
       ##### search & booking time for user
       b_f_time = []
       b_r_time = []
-      #print(keys)
       hkey_lists_data = hkey_lists[mypassword] ### mapping user phone_num to booing info
-      #print(hkey_lists_data)
       for  field_key  in  hkey_lists_data :
           if re.compile('b_f_time').match(field_key):
               b_f_time.append(hkey_lists_data[field_key])
@@ -285,21 +258,19 @@ for u_num in range(len(myusername_list)):
           #elif field_key == 'm_to':
           #    m_to.append(hkey_lists_data[field_key])         
               
-      #web = webdriver.Chrome('/usr/local/bin/chromedriver') ## for cron path
       web.get(order_url)
       time.sleep(random.randrange(3, 5, 1))
-      web.find_element_by_id("ctl00_ContentPlaceHolder1_txtCustomer_ID").send_keys(myusername)
-      web.find_element_by_id("ctl00_ContentPlaceHolder1_txtPhone").send_keys(mypassword)
+      web.find_element(By.ID,"ctl00_ContentPlaceHolder1_txtCustomer_ID").send_keys(myusername)
+      web.find_element(By.ID,"ctl00_ContentPlaceHolder1_txtPhone").send_keys(mypassword)
       time.sleep(random.randrange(3, 5, 1))
-      web.find_element_by_id("ctl00_ContentPlaceHolder1_btnStep1_OK").click()
+      web.find_element(By.ID,"ctl00_ContentPlaceHolder1_btnStep1_OK").click()
       time.sleep(random.randrange(3, 5, 1))
       logger_mw = logging.getLogger(mark_word(myusername_list[u_num]))
-      div_msg = web.find_element_by_id("ctl00_ContentPlaceHolder1_UsrMsgBox_txtMsg").text
+      div_msg = web.find_element(By.ID,"ctl00_ContentPlaceHolder1_UsrMsgBox_txtMsg").text
       b_num =0  ### booking times
       wait_time_sec = 30
       while (b_num < 1) :
              if (len(div_msg) == 0) :
-                  #div_msg = web.find_element_by_id("ctl00_ContentPlaceHolder1_UsrMsgBox_txtMsg").text
                   #web.save_screenshot('Login_failed.png')  
                   logger_mw.info("user login is success")
                   
@@ -307,31 +278,28 @@ for u_num in range(len(myusername_list)):
                      logger_mw.info(div_msg)
                      web.save_screenshot('%s_Login_failed.png' % mark_word(myusername_list[u_num]))
                      break
-             #logging.info("step1_next_click user login is success")
              
              ### step 2
              
              ### choice station  from Taipei_bus_center to Chaoma terminal
              try :
-                   Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlStation_ID_From")).select_by_value(s_start_id)
+                   Select(web.find_element(By.ID,"ctl00_ContentPlaceHolder1_ddlStation_ID_From")).select_by_value(s_start_id)
                    logging.info("From_location  is success")
                    time.sleep(random.randrange(3, 5, 1))
              except : 
-                     #logging.info("From_location  is failed")
-                     #web.save_screenshot('From_location_failed.png')
                     
-                     div_msg = web.find_element_by_id("ctl00_ContentPlaceHolder1_UsrMsgBox_txtMsg").text 
+                     div_msg = web.find_element(By.ID,"ctl00_ContentPlaceHolder1_UsrMsgBox_txtMsg").text 
                      web.save_screenshot('%s_From_location_failed.png' % mark_word(myusername_list[u_num]))
                      logging.info(div_msg)
                      
                      break
              
              try :
-                   Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlStation_ID_To")).select_by_value(s_end_id)
+                   Select(web.find_element(By.ID,"ctl00_ContentPlaceHolder1_ddlStation_ID_To")).select_by_value(s_end_id)
                    logging.info("Destination_location  is success")
                    time.sleep(random.randrange(3, 5, 1))
              except : 
-                     div_msg = web.find_element_by_id("ctl00_ContentPlaceHolder1_UsrMsgBox_txtMsg").text
+                     div_msg = web.find_element(By.ID,"ctl00_ContentPlaceHolder1_UsrMsgBox_txtMsg").text
                      logging.info(div_msg)
                      web.save_screenshot('%s_Destination_location_failed.png' % mark_word(myusername_list[u_num]))
              
@@ -339,26 +307,10 @@ for u_num in range(len(myusername_list)):
              ### choice station  from date , rutern date
              logger_day_from = logging.getLogger(day_from)
              try :
-                  web.find_element_by_id("ctl00_ContentPlaceHolder1_txtAOut_Dt").send_keys(day_from)
-                  #alert_msg =alert_sw(web)
-                  #if alert_msg == '' :
-                  #   logger_day_from.info("From Date choose  is success")
-                  #   time.sleep(random.randrange(3, 5, 1))
-                  #else : 
-                  #     logger_day_from.info("%s ","From Date choose  is failed " + alert_msg)
-                  #     break
+                  web.find_element(By.ID,"ctl00_ContentPlaceHolder1_txtAOut_Dt").send_keys(day_from)
 
              except UnexpectedAlertPresentException:
-                     #web.find_element_by_id("ctl00_ContentPlaceHolder1_txtAOut_Dt").send_keys(day_from) 
                      logger_day_from.info("From Date choose  is failed")
-             	     #alert_msg = web.find_element_by_id("ctl00_ContentPlaceHolder1_UsrMsgBox_txtMsg").text
-                     #alert_msg = web.switch_to_alert().text ### get alert msg
-                     #web.switch_to_alert().accept() ### get alert msg
-                     #alert_msg = web.switch_to_alert().text() ### get alert msg
-                     #logger_day_from.info(alert_msg)
-                     #alert_sw = web.switch_to.alert
-                     #alert_msg = alert_sw.text
-                     #alert_sw.accept()
                      alert_msg =alert_sw(web)
                      logger_day_from.info("%s ","From Date choose  is failed " + alert_msg)
                      web.save_screenshot('%s_From_Date_choose_failed.png' % mark_word(myusername_list[u_num]))
@@ -377,23 +329,12 @@ for u_num in range(len(myusername_list)):
  
              logger_day_return = logging.getLogger(day_return)
              try :
-                  web.find_element_by_id("ctl00_ContentPlaceHolder1_txtBOut_Dt").send_keys(day_return)
-                  #alert_msg =alert_sw(web)
-                  #if alert_msg == '' :
-                  #   logger_day_return.info("Return Date choose  is success")
-                  #   time.sleep(random.randrange(3, 5, 1))
-                  #else :
-                  #     logger_day_return.info("%s ","Return Date choose  is failed " + alert_msg)
-                  #     break
+                  web.find_element(By.ID,"ctl00_ContentPlaceHolder1_txtBOut_Dt").send_keys(day_return)
                   
 
              except UnexpectedAlertPresentException:
-                     #alert_sw = web.switch_to.alert
-                     #alert_msg = alert_sw.text
-                     #alert_sw.accept()
                      alert_msg =alert_sw(web)
                      logger_day_return.info("%s ","Return Date choose  is failed " + alert_msg)
-                     #logger_mw.info("%s " ,  "Day_Return: " + day_return + '    R_seat: ' + r_s_num +  '    R_time: ' + r_o_time)
                      web.save_screenshot('%s_Return_Date_choose_failed.png' % mark_word(myusername_list[u_num]))
                      web.quit()
                      break
@@ -412,17 +353,13 @@ for u_num in range(len(myusername_list)):
              time_from = s_f_h + ':' +s_f_m
              logger_time_from = logging.getLogger(time_from)
              try :
-                  Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlAHour")).select_by_value(s_f_h)
+                  Select(web.find_element(By.ID,"ctl00_ContentPlaceHolder1_ddlAHour")).select_by_value(s_f_h)
                   time.sleep(random.randrange(5, 10, 1))
-                  Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlAMinute")).select_by_value(s_f_m)
+                  Select(web.find_element(By.ID,"ctl00_ContentPlaceHolder1_ddlAMinute")).select_by_value(s_f_m)
                   time.sleep(random.randrange(5, 10, 1))
                   logger_time_from.info("Search From Time choose is success")
-                  #web.save_screenshot('%s_from_time_table_choose.png' % mark_word(myusername_list[u_num]))
 
              except UnexpectedAlertPresentException:
-                     #alert_sw = web.switch_to.alert
-                     #alert_msg = alert_sw.text
-                     #alert_sw.accept()
                      alert_msg =alert_sw(web)
                      logger_time_from.info("%s ","Search From Time choose  is failed " + alert_msg)
                      web.save_screenshot('%s_SearchFromTime_failed.png' % mark_word(myusername_list[u_num]))
@@ -432,12 +369,11 @@ for u_num in range(len(myusername_list)):
              time_return = s_r_h + ':' + s_r_m
              logger_time_return = logging.getLogger(time_return)
              try :
-                  Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlBHour")).select_by_value(s_r_h)
+                  Select(web.find_element(By.ID,"ctl00_ContentPlaceHolder1_ddlBHour")).select_by_value(s_r_h)
                   time.sleep(random.randrange(5, 10, 1))
-                  Select(web.find_element_by_id("ctl00_ContentPlaceHolder1_ddlBMinute")).select_by_value(s_r_m)
+                  Select(web.find_element(By.ID,"ctl00_ContentPlaceHolder1_ddlBMinute")).select_by_value(s_r_m)
                   time.sleep(random.randrange(5, 10, 1))
                   logger_time_return.info("Search Return Time choose is success")
-                  #web.save_screenshot('%s_return_time_table_choose.png' % mark_word(myusername_list[u_num]))
              except :
                      logger_time_return.info("Search Return Time choose is failed")
                      web.save_screenshot('%s_Search_ReturnTime_failed.png' % mark_word(myusername_list[u_num]))
@@ -473,7 +409,6 @@ for u_num in range(len(myusername_list)):
                     time.sleep(random.randrange(30, 40, 1))    ### waiting for 3 schdule table
                     soup = BeautifulSoup(web.page_source  , "html.parser")
                     chk_grdAList = soup.find(id='ctl00_ContentPlaceHolder1_grdAList')
-                    #print("time table wait of 2 times")
 
              chk_grdAList_id = chk_grdAList.get('id') 
              ## check from time table  1st: 18:55  , 2nd: 18:45 ,3rd : 19:15
@@ -486,15 +421,12 @@ for u_num in range(len(myusername_list)):
              while (list_n < len(b_f_time) and f_o_num ==5 and chk_grdAList_id != None) :
             
                     f_o_num , f_o_time , f_o_num_0 = get_option_num(soup,'ctl00_ContentPlaceHolder1_grdAList',b_f_time[list_n])
-                    #print (f_o_num , f_o_time , f_o_num_0)
                     list_n +=1
              
              if (f_o_num < 5) :
                     f_condi="//*[@id='ctl00_ContentPlaceHolder1_grdAList']/tbody/tr["+ str(f_o_num) +"]/td[2]/input"
-                    #print('f_condi:',f_condi)
              else : 
                     f_condi_0="//*[@id='ctl00_ContentPlaceHolder1_grdAList']/tbody/tr["+ str(f_o_num_0) +"]/td[2]/input"
-                    #print('f_condi_0:',f_condi_0)
  
              try :
                  from_botton = WebDriverWait(web, wait_time_sec).until(EC.element_to_be_clickable((By.XPATH, f_condi)))
@@ -502,16 +434,13 @@ for u_num in range(len(myusername_list)):
                  time.sleep(random.randrange(30, 40, 1))
                  logger_f_o_time=logging.getLogger(f_o_time)
                  logger_f_o_time.info("step3_click_1 check from time table  is success")
-                 # web.save_screenshot('%s_Check_from_time_1.png' % mark_word(myusername_list[u_num]))
              
              except:
-                   #f_condi="//*[@id='ctl00_ContentPlaceHolder1_grdAList']/tbody/tr["+ str(f_o_num_0) +"]/td[2]/input"
                    from_botton = WebDriverWait(web, wait_time_sec).until(EC.element_to_be_clickable((By.XPATH, f_condi_0)))
                    from_botton.click()
                    time.sleep(random.randrange(20, 30, 1))
                    logger_f_o_time=logging.getLogger(f_o_time)
-                   #logger_f_o_time.info("step3_click_1 check from time table  is failed")
-                   div_msg = web.find_element_by_id("ctl00_ContentPlaceHolder1_UsrMsgBox_txtMsg").text             
+                   div_msg = web.find_element(By.ID,"ctl00_ContentPlaceHolder1_UsrMsgBox_txtMsg").text             
                    logger_f_o_time.info(div_msg)
                    web.save_screenshot('%s_Check_from_time_failed.png' % mark_word(myusername_list[u_num]))
                    break
@@ -520,9 +449,7 @@ for u_num in range(len(myusername_list)):
              r_condi =''
              list_n=0
              r_o_num=5
-             #while (list_n < len(b_r_time) and r_o_num ==5) :
              while (list_n < len(b_r_time) and r_o_num ==5 and  chk_grdAList_id != None) :
-             #r_o_num,r_o_time =get_option_num(soup,'ctl00_ContentPlaceHolder1_grdBList','06:00     ')
                 r_o_num,r_o_time ,r_o_num_0 =get_option_num(soup,'ctl00_ContentPlaceHolder1_grdBList',b_r_time[list_n])
                 list_n +=1
              
@@ -537,23 +464,17 @@ for u_num in range(len(myusername_list)):
                  return_botton = WebDriverWait(web, wait_time_sec).until(EC.element_to_be_clickable((By.XPATH, r_condi)))
                  return_botton.click()
                  time.sleep(random.randrange(30, 40, 1))
-                 #logger_r_o_time=logging.getLogger(r_o_time)
                  logger_r_o_time.info("step3_click_2 check return time table is success")
-                 #web.save_screenshot('%s_Check_return_time_2.png' % mark_word(myusername_list[u_num]))                
  
              except:
-                   #r_condi="//*[@id='ctl00_ContentPlaceHolder1_grdBList']/tbody/tr[3]/td[2]/input"
                    return_botton = WebDriverWait(web, wait_time_sec).until(EC.element_to_be_clickable((By.XPATH, r_condi_0)))
                    return_botton.click()
                    time.sleep(random.randrange(20, 30, 1))
-                   #logger_r_o_time=logging.getLogger(r_o_time)
-                   div_msg = web.find_element_by_id("ctl00_ContentPlaceHolder1_UsrMsgBox_txtMsg").text
+                   div_msg = web.find_element(By.ID,"ctl00_ContentPlaceHolder1_UsrMsgBox_txtMsg").text
                    logger_r_o_time.info(div_msg)
-                   #logger_r_o_time.info("step3_click_2 check return time table is failed")
                    web.save_screenshot('%s_Check_return_time_failed.png' % mark_word(myusername_list[u_num]))
                    break
 
-             #web.save_screenshot('%s_Check_time_table_debug.png' % mark_word(myusername_list[u_num]))
              ### check time table button
              try:
                  step3_click = WebDriverWait(web, wait_time_sec).until(EC.element_to_be_clickable((By.ID, "ctl00_ContentPlaceHolder1_btnStep3_OK")))
@@ -563,10 +484,8 @@ for u_num in range(len(myusername_list)):
              
              except:
                    logging.info("step3_next check time table button  is failed")
-                   #web.save_screenshot('%s_CheckTimeTable_failed.png' % mark_word(myusername_list[u_num]))
                    break
 
-             #web.save_screenshot('%s_Check_time_table_3_button.png' % mark_word(myusername_list[u_num]))             
 
              ### step 4
              ### for loop choice seat
@@ -577,11 +496,8 @@ for u_num in range(len(myusername_list)):
              #seat_list_seq = ['8','6','7','11','9','10','14','12','13']
              for s_num in seat_list:  ##seat num from seat_list
                   order_seat_from,order_seat_return = change_seat(s_num)
-                  #print('order_seat_from:',order_seat_from)
-                  #print('order_seat_return:',order_seat_return)
                   ### choice from seat
                   if j < len(seat_list) :
-                       #print('seat_from:',seat_list[j])
                        try:
                              from_seat = WebDriverWait(web, 10).until(EC.element_to_be_clickable((By.ID, order_seat_from)))
                              from_seat.click()
@@ -627,7 +543,7 @@ for u_num in range(len(myusername_list)):
                      ##radio
                      ###choice ticket amount:1
                      try:
-                         web.find_element_by_id('ctl00_ContentPlaceHolder1_rdoATot_Count_0').click()
+                         web.find_element(By.ID,'ctl00_ContentPlaceHolder1_rdoATot_Count_0').click()
                          time.sleep(random.randrange(1, 5, 1))
                          logging.info("setting form ticket amount is sucesses")
                          ## choice return ticket  count
@@ -636,7 +552,7 @@ for u_num in range(len(myusername_list)):
                              web.save_screenshot('%s_Set_from_ticket_amount_failed.png' % mark_word(myusername_list[u_num]))
              
                      try:
-                           web.find_element_by_id('ctl00_ContentPlaceHolder1_rdoBTot_Count_0').click()
+                           web.find_element(By.ID,'ctl00_ContentPlaceHolder1_rdoBTot_Count_0').click()
                            time.sleep(random.randrange(1, 5, 1))
                            logging.info("setting return ticket amount is sucesses")
              
@@ -646,7 +562,7 @@ for u_num in range(len(myusername_list)):
 
                      ### checkbox agree
                      try :
-                          step4_chkAgree_ = web.find_element_by_id("ctl00_ContentPlaceHolder1_chkAgree")
+                          step4_chkAgree_ = web.find_element(By.ID,"ctl00_ContentPlaceHolder1_chkAgree")
                           step4_chkAgree_.click()
                           time.sleep(random.randrange(30, 40, 1))
                           logging.info("step4_click_checkbox  Agree  is success")
@@ -658,7 +574,7 @@ for u_num in range(len(myusername_list)):
  
                      ### finshed book bus ticket
                      try :
-                          step4_click = web.find_element_by_id("ctl00_ContentPlaceHolder1_btnStep4_OK")
+                          step4_click = web.find_element(By.ID,"ctl00_ContentPlaceHolder1_btnStep4_OK")
                           step4_click.click()
                           time.sleep(random.randrange(30, 40, 1))
                           logging.info("step4_click booking  ticket  is success")
@@ -695,7 +611,7 @@ for u_num in range(len(myusername_list)):
              
                          if j < len(ticket_num):
                               try:
-                                  web.find_element_by_id("ctl00_ContentPlaceHolder1_txtCoupon_TicketNo1").send_keys(from_ticket)
+                                  web.find_element(By.ID,"ctl00_ContentPlaceHolder1_txtCoupon_TicketNo1").send_keys(from_ticket)
                                   logger1 = logging.getLogger(from_ticket)
                                   logger1.info("step5_1 TicketNo1 keys in is sucesses")
                                   time.sleep(random.randrange(3, 5, 1))
@@ -712,7 +628,7 @@ for u_num in range(len(myusername_list)):
                          ## payment key ticket no5
                          if k < len(ticket_num) :
                              try:
-                                 web.find_element_by_id("ctl00_ContentPlaceHolder1_txtCoupon_TicketNo5").send_keys(return_ticket)
+                                 web.find_element(By.ID,"ctl00_ContentPlaceHolder1_txtCoupon_TicketNo5").send_keys(return_ticket)
                                  logger2 = logging.getLogger(return_ticket)
                                  logger2.info("step5_2 TicketNo5 keys in is sucesses")
                                  time.sleep(random.randrange(3, 5, 1))
@@ -737,12 +653,12 @@ for u_num in range(len(myusername_list)):
                           logger_mw = logging.getLogger(mark_word(myusername_list[u_num]))
                           logger_mw.info("Booking & Payment is Success")
                           logger_mw.info("%s " ,  "Day_From: " + day_from + '    F_seat: ' + f_s_num +  '    F_time: ' + f_o_time)
-                          logger_mw.info("%s " ,  "Day_Return: " + day_return + '    R_seat: ' + r_s_num +  '    R_time: ' + r_o_time) 
-                          #web.save_screenshot('%s_Booking&Payment_Success.png' % mark_word(myusername_list[u_num]))
+                          logger_mw.info("%s " ,  "Day_Return: " + day_return + '    R_seat: ' + r_s_num +  '    R_time: ' + r_o_time)
+                          scroll_element =  web.find_element(By.ID,"ctl00_ContentPlaceHolder1_lblPayMessage")
+                          web.execute_script("arguments[0].scrollIntoView(true);", scroll_element)
                           web.save_screenshot('{}_Booking&Payment_Success_{}.png'.format(mark_word(myusername_list[u_num]),day_from.replace("/",'')))
                           time.sleep(random.randrange(2, 5, 1))
                           web.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                          #web.save_screenshot('%s_Booking&Payment_Success_1.png' % mark_word(myusername_list[u_num]))
                           web.save_screenshot('{}_Booking&Payment_Success_Confirm_{}.png'.format(mark_word(myusername_list[u_num]),day_return.replace("/",'')))
              
                      except:
@@ -752,7 +668,6 @@ for u_num in range(len(myusername_list)):
              
              else :
                    logging.info("choice seat is all full") 
-                   #u_num = len(myusername_list) ## choice seat is all full 
                    break ## choice seat is all full  while (b_num)
                   
              b_num +=1  ### user booking done
@@ -796,15 +711,6 @@ finally:
 
 send_mail.send_email('kingbus auto booking ',body,m_to)
 
-"""
-async def send_media_group(bot_token, chat_id, image_paths):
-    bot = telegram.Bot(token=bot_token)
-    media = [telegram.InputMediaPhoto(media=open(img, 'rb')) for img in image_paths]
-    await bot.send_media_group(chat_id=chat_id, media=media)
-"""
-
-#token =  get_redis_data_tg('tg_bot_hset','hget','@stock_broadcast_2024bot','NULL')
-#chat_id = get_redis_data_tg('tg_chat_id','hget','stock_broadcast','NULL')
 
 
 image_paths=[]    
@@ -814,6 +720,4 @@ caption='kingbus auto booking_'+log_date
 
 for names in items :
   if  names.endswith(".png") : ##find out * '.png' file
-      #image_paths.append(names)
-      #tg_bot.send_tg_media_group(image_paths)
       tg_bot.send_tg_bot_photo(caption,names) 
