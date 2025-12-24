@@ -42,11 +42,14 @@ hostname_url = 'https://my.noip.com/dns/records'
 #hostname_url = 'https://www.noip.com/members/dns/'
 
 options = webdriver.ChromeOptions()
-options.add_argument("--headless")
+options.add_argument("--headless=new")
 options.add_argument('--disable-dev-shm-usage')
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-gpu")
 options.add_argument("--accept-lang=en-us")
+options.add_argument("--disable-site-isolation-trials")
+options.add_argument("--renderer-process-limit=4")
+
 web = webdriver.Chrome(options=options)
 
 
@@ -270,6 +273,9 @@ if len(pass_domain_list) == 0 :
    domain_status =1
    #web.execute_script("window.scrollTo(0, "+str(y)+")")
    ### scorll_drop 
+
+   #scroll_element =  web.find_element(By.ID,"zone-collection-ZGRucy5uZXQ")
+   #web.execute_script("arguments[0].scrollIntoView(true);", scroll_element)
    web.execute_script("window.scrollTo(0, document.body.scrollHeight);")
    time.sleep(random.randrange(1, 3, 1))
    web.save_screenshot('User_Confirm_Done.png')
